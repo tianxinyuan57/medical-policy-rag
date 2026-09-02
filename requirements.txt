@@ -1,10 +1,19 @@
-openai
-langchain
-langchain-community
-langchain-chroma
-chromadb
-langchain-text-splitters
-sentence-transformers
+# 核心依赖（版本号锁定，避免依赖冲突）
+openai==3.7.0
+langchain==0.3.30
+langchain-core==0.3.86
+langchain-community==0.3.31
+langchain-chroma==0.1.4
+langchain-huggingface==0.3.1
+langchain-text-splitters==0.3.11
+chromadb==0.5.23
+sentence-transformers==5.7.0
+transformers==4.46.3
+tokenizers==0.20.3
+torch==2.13.0
+numpy==1.26.4
 pypdf
-python-dotenv
+python-dotenv==1.2.3
+
+# Web 界面（可选）
 streamlit

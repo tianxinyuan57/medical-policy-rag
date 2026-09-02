@@ -20,4 +20,4 @@ EMBED_MODEL = "BAAI/bge-small-zh-v1.5"  # 本地中文 embedding，免费、离�
 # --- RAG 参数 ---
 CHUNK_SIZE = 500       # 每个文本片段的字符数
 CHUNK_OVERLAP = 100    # 相邻片段的重叠字符数
-TOP_K = 3              # 检索返回的最相关片段数
+TOP_K = 5              # 检索返回的最相关片段数（由 3 调优至 5，见 tuning_experiment.py）

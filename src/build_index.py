@@ -264,5 +264,114 @@ def build():
     print("=" * 60)
 
 
+# =====================================================
+# 增量更新：只处理新增的文件
+# =====================================================
+#
+# 【面试必考题：文件更新或新增怎么办？】
+#
+# 答：不需要全部重建。Chroma 支持增量添加。
+# 我的做法是：
+# 1. 检查向量库里已经有哪些文件（通过 metadata 里的 source 字段）
+# 2. 扫描 data/ 目录，找出新增的文件
+# 3. 只对新文件走 加载→切分→向量化→加入 的流程
+#
+# 什么时候必须全部重建？
+# - 改了 chunk_size 或 chunk_overlap（切法变了）
+# - 换了 embedding 模型（向量空间变了，旧新向量不兼容）
+# - 删除了某份文件（需要清掉对应的 chunk）
+
+def update():
+    """增量更新：只处理 data/ 里新增的文件，加入已有向量库。"""
+    print("=" * 60)
+    print("🔄 向量库增量更新")
+    print("=" * 60)
+
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    chroma_path = os.path.join(project_root, CHROMA_DIR)
+    data_path = os.path.join(project_root, DATA_DIR)
+
+    if not os.path.exists(chroma_path):
+        print("  ⚠️  向量库不存在，需要先完整建库！")
+        print("  运行: python src/build_index.py --mode full")
+        return
+
+    # 连接已有向量库
+    embeddings = HuggingFaceEmbeddings(
+        model_name=EMBED_MODEL,
+        model_kwargs={"device": "cpu"},
+        encode_kwargs={"normalize_embeddings": True},
+    )
+    vectorstore = Chroma(
+        persist_directory=chroma_path,
+        embedding_function=embeddings,
+    )
+
+    # 查看向量库里已有哪些文件
+    existing_docs = vectorstore.get()
+    existing_sources = set()
+    if existing_docs and existing_docs.get("metadatas"):
+        for meta in existing_docs["metadatas"]:
+            if meta and "source" in meta:
+                existing_sources.add(os.path.basename(meta["source"]))
+    print(f"\n  📦 向量库已有 {len(existing_sources)} 个文件的数据：")
+    for s in sorted(existing_sources):
+        print(f"     · {s}")
+
+    # 扫描 data/ 目录，找新文件
+    all_files = set(f for f in os.listdir(data_path) if f.endswith((".txt", ".pdf")))
+    new_files = all_files - existing_sources
+
+    if not new_files:
+        print(f"\n  ✅ 没有新文件需要处理，知识库已是最新！")
+        print(f"     当前共 {vectorstore._collection.count()} 个片段")
+        return
+
+    print(f"\n  🆕 发现 {len(new_files)} 个新文件：")
+    for f in sorted(new_files):
+        print(f"     · {f}")
+
+    # 只加载新文件
+    new_docs = []
+    for name in sorted(new_files):
+        path = os.path.join(data_path, name)
+        if name.endswith(".pdf"):
+            loader = PyPDFLoader(path)
+        else:
+            loader = TextLoader(path, encoding="utf-8")
+        loaded = loader.load()
+        new_docs.extend(loaded)
+        print(f"  📄 已加载: {name} → {len(loaded)} 个文档")
+
+    # 切分新文件
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP,
+        separators=["\n\n", "\n", "。", "；", "，", " ", ""],
+    )
+    new_chunks = splitter.split_documents(new_docs)
+    print(f"\n  ✂️  切分: {len(new_docs)} 个文档 → {len(new_chunks)} 个新片段")
+
+    # 加入向量库（不删除已有数据）
+    print(f"  📦 正在向量化并加入已有向量库...")
+    vectorstore.add_documents(new_chunks)
+
+    total = vectorstore._collection.count()
+    print(f"\n  ✅ 增量更新完成！")
+    print(f"     新增 {len(new_chunks)} 个片段")
+    print(f"     向量库总计 {total} 个片段")
+    print("=" * 60)
+
+
 if __name__ == "__main__":
-    build()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="RAG 向量库建设/更新")
+    parser.add_argument("--mode", choices=["full", "update"], default="full",
+                        help="full=全量重建（默认），update=只处理新增文件")
+    args = parser.parse_args()
+
+    if args.mode == "update":
+        update()
+    else:
+        build()
