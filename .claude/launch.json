@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "medrag-app",
-      "runtimeExecutable": "D:\\anaconda\\envs\\medrag\\Scripts\\streamlit.exe",
-      "runtimeArgs": ["run", "app.py", "--server.headless", "true"],
+      "runtimeExecutable": "D:\\anaconda\\envs\\medrag\\python.exe",
+      "runtimeArgs": ["-m", "streamlit", "run", "app.py", "--server.headless", "true"],
       "port": 8501
     }
   ]
