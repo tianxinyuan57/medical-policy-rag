@@ -1,85 +1,253 @@
-"""🏥 医疗政策 RAG 问答系统 —— Streamlit Web 界面
-
-启动命令：
-  streamlit run app.py
-
-功能：
-  1. 智能问答：输入问题 → 检索原文 → 生成带引用的回答
-  2. 检索透视：可视化展示每个检索片段的来源和内容
-  3. 评估面板：一键运行 10 道测试题，查看检索/生成质量
-  4. 知识库管理：查看已入库的政策文件和片段统计
-"""
+"""医疗政策 RAG 问答系统 —— Streamlit Web 界面"""
 
 import sys
 import os
 import json
 import time
 
-# ---- 路径设置：确保能 import src/ 下的模块 ----
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC_DIR = os.path.join(PROJECT_ROOT, "src")
 sys.path.insert(0, SRC_DIR)
 
 import streamlit as st
 
-# ---- 页面基础配置 ----
+# ── 页面配置 ──────────────────────────────────────────
+
 st.set_page_config(
-    page_title="医疗政策 RAG 问答系统",
+    page_title="医疗政策 RAG 问答",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
+# ── 自定义样式 ────────────────────────────────────────
 
-# =====================================================
-# 缓存加载：只在首次运行时加载模型和向量库
-# =====================================================
+st.markdown("""
+<style>
+/* ── 全局 ── */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+[data-testid="stAppViewContainer"] {
+    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ── 侧边栏 ── */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+}
+[data-testid="stSidebar"] * {
+    color: #e2e8f0 !important;
+}
+[data-testid="stSidebar"] hr {
+    border-color: rgba(255,255,255,0.1);
+}
+[data-testid="stSidebar"] .stRadio label {
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+[data-testid="stSidebar"] .stRadio label:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+/* ── 主内容区顶部 hero ── */
+.hero-section {
+    text-align: center;
+    padding: 2rem 1rem 1.5rem;
+}
+.hero-section h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.hero-section p {
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+/* ── 示例问题卡片 ── */
+.example-btn button {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 10px 16px !important;
+    font-size: 0.85rem !important;
+    text-align: left !important;
+    transition: all 0.2s !important;
+    background: white !important;
+    color: #334155 !important;
+}
+.example-btn button:hover {
+    border-color: #3b82f6 !important;
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59,130,246,0.15) !important;
+}
+/* 暗色模式适配 */
+@media (prefers-color-scheme: dark) {
+    .example-btn button {
+        background: #1e293b !important;
+        color: #e2e8f0 !important;
+        border-color: #334155 !important;
+    }
+    .example-btn button:hover {
+        background: #1e3a5f !important;
+        border-color: #3b82f6 !important;
+        color: #93c5fd !important;
+    }
+    .file-card {
+        background: #1e293b;
+        border-color: #334155;
+    }
+    .file-card:hover {
+        background: #1e3a5f;
+        border-color: #3b82f6;
+    }
+    .file-card .name { color: #e2e8f0; }
+    .file-card .meta { color: #64748b; }
+    .retrieval-card {
+        background: #1e293b;
+    }
+    .retrieval-card .source-tag {
+        background: #1e3a5f;
+        color: #93c5fd;
+    }
+    [data-testid="stMetric"] {
+        background: #1e293b;
+        border-color: #334155;
+    }
+}
+/* Streamlit 自带 dark 主题也适配 */
+[data-theme="dark"] .example-btn button {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+[data-theme="dark"] .example-btn button:hover {
+    background: #1e3a5f !important;
+    border-color: #3b82f6 !important;
+    color: #93c5fd !important;
+}
+
+/* ── 聊天气泡 ── */
+[data-testid="stChatMessage"] {
+    border-radius: 16px;
+    margin-bottom: 1rem;
+    padding: 1rem 1.25rem;
+}
+
+/* ── 指标卡片 ── */
+[data-testid="stMetric"] {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem;
+}
+[data-testid="stMetricValue"] {
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+}
+
+/* ── 知识库文件网格 ── */
+.file-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    transition: all 0.15s;
+}
+.file-card:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+.file-card .name {
+    font-weight: 500;
+    color: #1e293b;
+    font-size: 0.9rem;
+}
+.file-card .meta {
+    color: #94a3b8;
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+
+/* ── 检索片段卡片 ── */
+.retrieval-card {
+    background: #f1f5f9;
+    border-left: 3px solid #3b82f6;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+}
+.retrieval-card .source-tag {
+    display: inline-block;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+}
+
+/* ── Expander 样式 ── */
+[data-testid="stExpander"] {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* ── 隐藏默认页脚 ── */
+footer {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ── 缓存加载 ──────────────────────────────────────────
 
 @st.cache_resource(show_spinner="正在加载向量库和 Embedding 模型...")
 def load_rag_components():
-    """加载 RAG 组件（只执行一次，后续复用缓存）。"""
     from langchain_huggingface import HuggingFaceEmbeddings
     from langchain_chroma import Chroma
     from config import CHROMA_DIR, EMBED_MODEL
-
     chroma_path = os.path.join(PROJECT_ROOT, CHROMA_DIR)
     embeddings = HuggingFaceEmbeddings(
         model_name=EMBED_MODEL,
         model_kwargs={"device": "cpu"},
     )
-    vs = Chroma(
-        persist_directory=chroma_path,
-        embedding_function=embeddings,
-    )
+    vs = Chroma(persist_directory=chroma_path, embedding_function=embeddings)
     return vs, embeddings
 
 
 @st.cache_resource
 def load_llm_client():
-    """加载 LLM 客户端。"""
     from openai import OpenAI
     from config import DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL
     return OpenAI(api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL)
 
 
-def ask_llm(system_prompt: str, user_prompt: str) -> str:
-    """调用 LLM。"""
+def ask_llm_stream(system_prompt: str, user_prompt: str):
+    """调用 LLM，返回流式迭代器。"""
     from config import CHAT_MODEL
     client = load_llm_client()
-    resp = client.chat.completions.create(
+    return client.chat.completions.create(
         model=CHAT_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
         temperature=0.2,
+        stream=True,
     )
-    return resp.choices[0].message.content
 
 
-# =====================================================
-# RAG 核心：检索 + 生成（返回更多信息给前端展示）
-# =====================================================
+# ── RAG 核心 ──────────────────────────────────────────
 
 RAG_SYSTEM_PROMPT = """你是一位资深医疗政策顾问，既熟悉法律条文，又善于向非专业人士解释政策要点。
 
@@ -99,16 +267,11 @@ RAG_SYSTEM_PROMPT = """你是一位资深医疗政策顾问，既熟悉法律条
 """
 
 
-def rag_answer(question: str, top_k: int = 5):
-    """RAG 问答，返回 (回答文本, 检索结果列表, 耗时)。"""
+def rag_retrieve(question: str, top_k: int = 5):
+    """检索相关片段，返回 (context_str, retrieval_info)。"""
     vs, _ = load_rag_components()
-
-    t0 = time.time()
-
-    # 检索
     results = vs.similarity_search(question, k=top_k)
 
-    # 构建上下文
     context_blocks = []
     retrieval_info = []
     for i, doc in enumerate(results):
@@ -121,29 +284,25 @@ def rag_answer(question: str, top_k: int = 5):
             "index": i + 1,
             "source": src_name,
             "content": doc.page_content,
+            "method": doc.metadata.get("chunk_method", "fixed"),
+            "label": doc.metadata.get("article_label", ""),
         })
 
     context = "\n\n".join(context_blocks)
-    user_prompt = f"【参考原文】\n{context}\n\n【问题】\n{question}"
-
-    # 生成
-    answer_text = ask_llm(RAG_SYSTEM_PROMPT, user_prompt)
-    elapsed = time.time() - t0
-
-    return answer_text, retrieval_info, elapsed
+    return context, retrieval_info
 
 
-# =====================================================
-# 侧边栏
-# =====================================================
+# ── 侧边栏 ───────────────────────────────────────────
 
 with st.sidebar:
-    st.markdown("## 🏥 医疗政策 RAG")
-    st.caption("基于公开政策文件 · 答案可溯源 · 拒绝编造")
+    st.markdown("### 🏥 医疗政策问答")
+    st.caption("基于 94 部公开法规 · RAG 检索增强生成")
+
+    st.divider()
 
     page = st.radio(
-        "功能导航",
-        ["💬 智能问答", "📊 评估面板", "📚 知识库", "⚙️ 系统信息"],
+        "导航",
+        ["💬 对话", "📊 评估", "📚 知识库", "⚙️ 系统"],
         label_visibility="collapsed",
     )
 
@@ -153,127 +312,165 @@ with st.sidebar:
     try:
         vs, _ = load_rag_components()
         chunk_count = vs._collection.count()
-        st.success(f"✅ 向量库已加载：{chunk_count} 个片段")
+        st.markdown(f"**状态** &nbsp; 🟢 就绪")
+        st.caption(f"{chunk_count} 个片段已索引")
     except Exception as e:
-        st.error(f"❌ 向量库加载失败：{e}")
+        st.markdown(f"**状态** &nbsp; 🔴 异常")
+        st.caption(str(e)[:60])
         chunk_count = 0
 
     # 参数调节
-    st.markdown("### 🎛️ 参数调节")
-    top_k = st.slider("Top-K（检索片段数）", min_value=1, max_value=10, value=5,
-                       help="K 越大覆盖越全，但可能引入噪音")
+    st.markdown("**检索参数**")
+    top_k = st.slider("Top-K", min_value=1, max_value=10, value=5,
+                       help="检索返回的片段数", label_visibility="collapsed")
+    st.caption(f"Top-K = {top_k}")
+
+    st.divider()
+    st.caption("⚠️ 仅使用公开法规文本，不构成法律建议")
 
 
-# =====================================================
-# 页面 1：智能问答
-# =====================================================
+# ── 页面：对话 ────────────────────────────────────────
 
-if page == "💬 智能问答":
-    st.markdown("# 💬 智能问答")
-    st.markdown("输入关于医疗政策法规的问题，系统将从 **94 部公开法规及政策文件** 中检索相关条款并生成回答。")
+if page == "💬 对话":
 
-    # 初始化聊天历史
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
+    # 初始化
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-    # 示例问题（快速体验）
-    example_questions = [
-        "无偿献血的年龄范围是多少？",
-        "什么是假药？列举假药的情形。",
-        "医师和护士在紧急情况下的责任有什么不同？",
-        "以师承方式学中医的人可以行医吗？",
-        "发生医疗纠纷后，患者有权查阅哪些病历资料？",
-        "2025年医保报销比例是多少？",
-    ]
+    # 空状态：显示 hero + 示例
+    if not st.session_state.messages:
+        st.markdown("""
+        <div class="hero-section">
+            <h1>🏥 医疗政策智能问答</h1>
+            <p>基于 94 部公开法规及政策文件 · 条款级检索 · 引用可溯源</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.markdown("**快速试试：**")
-    cols = st.columns(3)
-    for i, eq in enumerate(example_questions):
-        with cols[i % 3]:
-            if st.button(eq, key=f"ex_{i}", use_container_width=True):
-                st.session_state["pending_question"] = eq
+        st.markdown("##### 💡 试试这些问题")
 
-    # 渲染历史消息
-    for msg in st.session_state.chat_history:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-            if msg["role"] == "assistant" and "elapsed" in msg:
-                st.caption(f"⏱️ 用时 {msg['elapsed']:.1f} 秒 | Top-K = {msg.get('top_k', 5)}")
-        # 历史消息的检索透视
-        if msg["role"] == "assistant" and "retrieval" in msg:
-            with st.expander(f"🔍 检索透视 — {len(msg['retrieval'])} 个片段", expanded=False):
-                for item in msg["retrieval"]:
-                    st.markdown(f"**片段 {item['index']}** — 来源：《{item['source']}》")
-                    st.code(item["content"], language=None)
+        examples = [
+            ("🩸", "无偿献血的年龄范围是多少？"),
+            ("💊", "什么是假药？列举假药的情形。"),
+            ("🩺", "医师和护士在紧急情况下的责任有什么不同？"),
+            ("🌿", "以师承方式学中医可以行医吗？需要什么条件？"),
+            ("📋", "发生医疗纠纷后，患者有权查阅哪些病历资料？"),
+            ("🏥", "甲类传染病包括哪些？"),
+        ]
 
-    # 获取新问题：来自 chat_input 或示例按钮
-    question = st.chat_input("输入你的问题...")
-    if question is None and "pending_question" in st.session_state:
-        question = st.session_state.pop("pending_question")
+        cols = st.columns(2)
+        for i, (icon, q) in enumerate(examples):
+            with cols[i % 2]:
+                st.markdown('<div class="example-btn">', unsafe_allow_html=True)
+                if st.button(f"{icon}  {q}", key=f"ex_{i}", use_container_width=True):
+                    st.session_state["pending_q"] = q
+                st.markdown('</div>', unsafe_allow_html=True)
+
+    else:
+        # 渲染历史对话
+        for msg in st.session_state.messages:
+            with st.chat_message(msg["role"], avatar="🧑‍💻" if msg["role"] == "user" else "🤖"):
+                st.markdown(msg["content"])
+
+                # 助手消息的元信息
+                if msg["role"] == "assistant" and "elapsed" in msg:
+                    st.caption(f"⏱️ {msg['elapsed']:.1f}s · Top-K={msg.get('top_k', 5)} · {len(msg.get('retrieval', []))} 个片段")
+
+            # 检索详情
+            if msg["role"] == "assistant" and msg.get("retrieval"):
+                with st.expander("🔍 查看检索片段", expanded=False):
+                    for item in msg["retrieval"]:
+                        st.markdown(f"""<div class="retrieval-card">
+                            <span class="source-tag">📄 {item['source']}</span>
+                            {' · <span class="source-tag">' + item['label'] + '</span>' if item.get('label') else ''}
+                            <div style="margin-top:6px; color:#475569; line-height:1.6;">{item['content'][:300]}{'...' if len(item['content']) > 300 else ''}</div>
+                        </div>""", unsafe_allow_html=True)
+
+    # 输入框
+    question = st.chat_input("输入医疗政策相关问题...")
+    if question is None and "pending_q" in st.session_state:
+        question = st.session_state.pop("pending_q")
 
     if question:
-        # 添加用户消息到历史
-        st.session_state.chat_history.append({"role": "user", "content": question})
-        with st.chat_message("user"):
+        # 用户消息
+        st.session_state.messages.append({"role": "user", "content": question})
+        with st.chat_message("user", avatar="🧑‍💻"):
             st.markdown(question)
 
-        # 生成回答
-        with st.chat_message("assistant"):
-            with st.spinner("正在检索并生成回答..."):
-                answer_text, retrieval_info, elapsed = rag_answer(question, top_k=top_k)
+        # 助手回答（流式）
+        with st.chat_message("assistant", avatar="🤖"):
+            t0 = time.time()
 
-            st.markdown(answer_text)
-            st.caption(f"⏱️ 用时 {elapsed:.1f} 秒 | Top-K = {top_k}")
+            # 检索
+            context, retrieval_info = rag_retrieve(question, top_k=top_k)
+            user_prompt = f"【参考原文】\n{context}\n\n【问题】\n{question}"
 
-        # 添加助手消息到历史
-        st.session_state.chat_history.append({
+            # 流式生成
+            stream = ask_llm_stream(RAG_SYSTEM_PROMPT, user_prompt)
+            full_answer = st.write_stream(
+                (chunk.choices[0].delta.content or ""
+                 for chunk in stream
+                 if chunk.choices[0].delta.content is not None)
+            )
+
+            elapsed = time.time() - t0
+            st.caption(f"⏱️ {elapsed:.1f}s · Top-K={top_k} · {len(retrieval_info)} 个片段")
+
+        # 保存历史
+        st.session_state.messages.append({
             "role": "assistant",
-            "content": answer_text,
+            "content": full_answer,
             "retrieval": retrieval_info,
             "elapsed": elapsed,
             "top_k": top_k,
         })
 
-        # 检索透视
-        with st.expander(f"🔍 检索透视 — 共检索到 {len(retrieval_info)} 个片段", expanded=False):
-            st.markdown("""
-            > **面试知识点**：排障时先看检索结果——如果检索就没找对段落，那是检索问题；
-            > 如果检索到了对的段落但模型答错，那是生成问题。
-            """)
+        # 检索详情
+        with st.expander("🔍 查看检索片段", expanded=False):
             for item in retrieval_info:
-                st.markdown(f"**片段 {item['index']}** — 来源：《{item['source']}》")
-                st.code(item["content"], language=None)
+                st.markdown(f"""<div class="retrieval-card">
+                    <span class="source-tag">📄 {item['source']}</span>
+                    {' · <span class="source-tag">' + item['label'] + '</span>' if item.get('label') else ''}
+                    <div style="margin-top:6px; color:#475569; line-height:1.6;">{item['content'][:300]}{'...' if len(item['content']) > 300 else ''}</div>
+                </div>""", unsafe_allow_html=True)
 
-    # 清空历史按钮
-    if st.session_state.chat_history:
-        if st.button("🗑️ 清空对话", key="clear_chat"):
-            st.session_state.chat_history = []
-            st.rerun()
+    # 底部操作栏
+    if st.session_state.messages:
+        st.markdown("---")
+        col1, col2, _ = st.columns([1, 1, 4])
+        with col1:
+            if st.button("🗑️ 清空对话", use_container_width=True):
+                st.session_state.messages = []
+                st.rerun()
+        with col2:
+            st.download_button(
+                "📥 导出对话",
+                data=json.dumps(
+                    [{"role": m["role"], "content": m["content"]}
+                     for m in st.session_state.messages],
+                    ensure_ascii=False, indent=2,
+                ),
+                file_name="chat_export.json",
+                mime="application/json",
+                use_container_width=True,
+            )
 
 
-# =====================================================
-# 页面 2：评估面板
-# =====================================================
+# ── 页面：评估 ────────────────────────────────────────
 
-elif page == "📊 评估面板":
-    st.markdown("# 📊 评估面板")
-    st.markdown("一键运行 10 道测试题，评估检索准确率和生成质量。")
+elif page == "📊 评估":
+    st.markdown("## 📊 系统评估")
+    st.caption("10 道测试题覆盖精确检索、理解推理、拒答测试三类场景")
 
-    # 先尝试加载上次的评估结果
     eval_path = os.path.join(PROJECT_ROOT, "tests", "eval_results.json")
     has_saved = os.path.exists(eval_path)
 
     col1, col2 = st.columns(2)
-
     with col1:
-        run_eval = st.button("🚀 运行完整评估", type="primary", use_container_width=True)
+        run_eval = st.button("▶ 运行评估", type="primary", use_container_width=True)
     with col2:
-        if has_saved:
-            load_saved = st.button("📂 查看上次结果", use_container_width=True)
-        else:
-            load_saved = False
+        load_saved = st.button("📂 加载上次结果", use_container_width=True, disabled=not has_saved)
 
-    # ---- 运行评估 ----
+    # 运行评估
     if run_eval:
         from evaluate import TEST_CASES, evaluate_retrieval, evaluate_generation
 
@@ -287,15 +484,18 @@ elif page == "📊 评估面板":
             q = tc["question"]
             progress.progress((i + 1) / total, text=f"[{i+1}/{total}] {q}")
 
-            # 检索评估
             ret_eval = evaluate_retrieval(q, tc.get("expected_source"))
             if ret_eval["hit"]:
                 retrieval_pass += 1
 
-            # 生成回答
-            ans_text, _, _ = rag_answer(q, top_k=top_k)
+            context, _ = rag_retrieve(q, top_k=top_k)
+            user_prompt = f"【参考原文】\n{context}\n\n【问题】\n{q}"
+            ans_text = ""
+            stream = ask_llm_stream(RAG_SYSTEM_PROMPT, user_prompt)
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    ans_text += chunk.choices[0].delta.content
 
-            # 生成评估
             gen_eval = evaluate_generation(ans_text, tc["expected_keywords"], tc["type"])
             if gen_eval["pass"]:
                 generation_pass += 1
@@ -310,193 +510,197 @@ elif page == "📊 评估面板":
 
         progress.empty()
 
-        # 保存结果
         os.makedirs(os.path.join(PROJECT_ROOT, "tests"), exist_ok=True)
         with open(eval_path, "w", encoding="utf-8") as f:
             json.dump(results_log, f, ensure_ascii=False, indent=2)
 
         st.session_state["eval_results"] = results_log
-        st.session_state["eval_retrieval_pass"] = retrieval_pass
-        st.session_state["eval_generation_pass"] = generation_pass
-        st.success("评估完成！")
+        st.session_state["eval_r_pass"] = retrieval_pass
+        st.session_state["eval_g_pass"] = generation_pass
 
-    # ---- 加载已有结果 ----
-    if has_saved and (load_saved or "eval_results" not in st.session_state):
-        if load_saved or "eval_results" not in st.session_state:
-            with open(eval_path, "r", encoding="utf-8") as f:
-                results_log = json.load(f)
-            r_pass = sum(1 for r in results_log if r["retrieval"].get("hit", False))
-            g_pass = sum(1 for r in results_log if r["generation"].get("pass", False))
-            st.session_state["eval_results"] = results_log
-            st.session_state["eval_retrieval_pass"] = r_pass
-            st.session_state["eval_generation_pass"] = g_pass
+    # 加载已有结果
+    if (has_saved and load_saved) or (has_saved and "eval_results" not in st.session_state):
+        with open(eval_path, "r", encoding="utf-8") as f:
+            results_log = json.load(f)
+        st.session_state["eval_results"] = results_log
+        st.session_state["eval_r_pass"] = sum(1 for r in results_log if r["retrieval"].get("hit"))
+        st.session_state["eval_g_pass"] = sum(1 for r in results_log if r["generation"].get("pass"))
 
-    # ---- 展示结果 ----
+    # 展示结果
     if "eval_results" in st.session_state:
         results_log = st.session_state["eval_results"]
-        retrieval_pass = st.session_state["eval_retrieval_pass"]
-        generation_pass = st.session_state["eval_generation_pass"]
+        r_pass = st.session_state["eval_r_pass"]
+        g_pass = st.session_state["eval_g_pass"]
         total = len(results_log)
 
-        # 总分卡片
         st.divider()
-        m1, m2, m3 = st.columns(3)
-        m1.metric("检索准确率", f"{retrieval_pass}/{total}", f"{retrieval_pass/total*100:.0f}%")
-        m2.metric("生成准确率", f"{generation_pass}/{total}", f"{generation_pass/total*100:.0f}%")
 
-        # 按类型统计
+        m1, m2, m3 = st.columns(3)
+        m1.metric("检索准确率", f"{r_pass}/{total}", f"{r_pass/total*100:.0f}%")
+        m2.metric("生成准确率", f"{g_pass}/{total}", f"{g_pass/total*100:.0f}%")
+
         type_stats = {}
         for r in results_log:
             t = r["type"]
             if t not in type_stats:
                 type_stats[t] = {"total": 0, "pass": 0}
             type_stats[t]["total"] += 1
-            if r["generation"].get("pass", False):
+            if r["generation"].get("pass"):
                 type_stats[t]["pass"] += 1
+        m3.metric("分类",
+                  " · ".join(f"{t} {s['pass']}/{s['total']}" for t, s in type_stats.items()))
 
-        type_str = " | ".join(
-            f"{t} {s['pass']}/{s['total']}" for t, s in type_stats.items()
-        )
-        m3.metric("分类通过率", type_str)
-
-        # 详细列表
         st.divider()
-        for i, r in enumerate(results_log):
+
+        for r in results_log:
             ret_ok = r["retrieval"].get("hit", False)
             gen_ok = r["generation"].get("pass", False)
-            status = "✅" if (ret_ok and gen_ok) else "❌"
+            icon = "✅" if (ret_ok and gen_ok) else "❌"
 
-            with st.expander(f"{status} [{r['type']}] {r['question']}", expanded=not gen_ok):
+            with st.expander(f"{icon} [{r['type']}] {r['question']}", expanded=not gen_ok):
                 c1, c2 = st.columns(2)
                 with c1:
                     st.markdown(f"**检索** {'✅' if ret_ok else '❌'}")
                     sources = r["retrieval"].get("sources", [])
                     if sources:
-                        st.markdown(f"来源：{', '.join(sources)}")
+                        st.caption(f"来源：{', '.join(sources[:3])}")
                 with c2:
                     st.markdown(f"**生成** {'✅' if gen_ok else '❌'}")
                     if r["type"] == "拒答测试":
-                        st.markdown(r["generation"].get("note", ""))
+                        st.caption(r["generation"].get("note", ""))
                     else:
-                        st.markdown(f"关键词覆盖：{r['generation'].get('coverage', 'N/A')}")
+                        st.caption(f"关键词：{r['generation'].get('coverage', 'N/A')}")
                         missed = r["generation"].get("missed_keywords", [])
                         if missed:
                             st.warning(f"未命中：{missed}")
 
-                st.markdown("**回答预览：**")
                 st.info(r.get("answer_preview", "")[:300])
 
 
-# =====================================================
-# 页面 3：知识库管理
-# =====================================================
+# ── 页面：知识库 ──────────────────────────────────────
 
 elif page == "📚 知识库":
-    st.markdown("# 📚 知识库管理")
+    st.markdown("## 📚 知识库")
 
     data_dir = os.path.join(PROJECT_ROOT, "data")
+    files = sorted([f for f in os.listdir(data_dir) if f.endswith((".txt", ".pdf"))]) if os.path.isdir(data_dir) else []
 
-    # 文件列表
-    if os.path.isdir(data_dir):
-        files = sorted([f for f in os.listdir(data_dir) if f.endswith((".txt", ".pdf"))])
-    else:
-        files = []
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("政策文件数", len(files))
-    col2.metric("向量片段数", chunk_count)
-    col3.metric("Top-K 设置", top_k)
+    # 概览
+    m1, m2, m3 = st.columns(3)
+    m1.metric("政策文件", f"{len(files)} 部")
+    m2.metric("向量片段", f"{chunk_count}")
+    m3.metric("切分方式", "条款级智能切分")
 
     st.divider()
 
-    # 文件列表
-    st.markdown("### 📄 已入库文件")
-    for i, f in enumerate(files):
-        fpath = os.path.join(data_dir, f)
-        size_kb = os.path.getsize(fpath) / 1024
+    # 分类展示
+    categories = {
+        "法律": [], "行政法规": [], "部门规章": [],
+        "规范性文件": [], "草案": [], "司法解释": [], "其他": [],
+    }
+
+    # 简单分类（按文件名特征）
+    for f in files:
         name = f.replace(".txt", "").replace(".pdf", "")
+        if "条例" in name and "草案" not in name:
+            categories["行政法规"].append(name)
+        elif "办法" in name or "规定" in name or "规范" in name or "规程" in name:
+            categories["部门规章"].append(name)
+        elif "关于" in name or "意见" in name or "通知" in name or "指导" in name:
+            categories["规范性文件"].append(name)
+        elif "草案" in name:
+            categories["草案"].append(name)
+        elif "骗保刑事案件" in name:
+            categories["司法解释"].append(name)
+        elif "法" in name:
+            categories["法律"].append(name)
+        else:
+            categories["其他"].append(name)
 
-        with st.expander(f"📑 {name}（{size_kb:.1f} KB）"):
-            with open(fpath, "r", encoding="utf-8") as fp:
-                content = fp.read()
-            st.text_area(
-                "文件内容",
-                value=content[:2000] + ("..." if len(content) > 2000 else ""),
-                height=200,
-                disabled=True,
-                key=f"file_{i}",
-                label_visibility="collapsed",
-            )
-            st.caption(f"全文 {len(content)} 字符")
+    for cat, items in categories.items():
+        if not items:
+            continue
+        with st.expander(f"**{cat}**（{len(items)} 部）", expanded=(cat == "法律")):
+            for name in items:
+                fpath = os.path.join(data_dir, name + ".txt")
+                if os.path.exists(fpath):
+                    size_kb = os.path.getsize(fpath) / 1024
+                    st.markdown(f"""<div class="file-card">
+                        <div class="name">📄 {name}</div>
+                        <div class="meta">{size_kb:.1f} KB</div>
+                    </div>""", unsafe_allow_html=True)
 
-    # 语义搜索测试
+    # 语义搜索
     st.divider()
-    st.markdown("### 🔍 语义搜索测试")
-    st.markdown("直接测试向量检索（不经过 LLM），看检索出哪些片段。")
-
-    search_q = st.text_input("输入搜索词", placeholder="例如：献血年龄")
+    st.markdown("#### 🔍 语义搜索测试")
+    search_q = st.text_input("测试检索效果（不经过 LLM）", placeholder="例如：献血年龄限制")
     if search_q:
         vs, _ = load_rag_components()
         results = vs.similarity_search(search_q, k=top_k)
-
         for i, doc in enumerate(results):
-            src = os.path.basename(doc.metadata.get("source", "未知")).replace(".txt", "")
-            st.markdown(f"**片段 {i+1}** — 来源：《{src}》")
-            st.code(doc.page_content, language=None)
+            src = os.path.basename(doc.metadata.get("source", "")).replace(".txt", "")
+            label = doc.metadata.get("article_label", "")
+            st.markdown(f"""<div class="retrieval-card">
+                <span class="source-tag">#{i+1} {src}</span>
+                {' · <span class="source-tag">' + label + '</span>' if label else ''}
+                <div style="margin-top:6px; color:#475569; line-height:1.6;">{doc.page_content[:400]}</div>
+            </div>""", unsafe_allow_html=True)
 
 
-# =====================================================
-# 页面 4：系统信息
-# =====================================================
+# ── 页面：系统 ────────────────────────────────────────
 
-elif page == "⚙️ 系统信息":
-    st.markdown("# ⚙️ 系统信息")
+elif page == "⚙️ 系统":
+    st.markdown("## ⚙️ 系统信息")
 
     from config import (DEEPSEEK_BASE_URL, CHAT_MODEL, EMBED_MODEL,
                         CHUNK_SIZE, CHUNK_OVERLAP, TOP_K as DEFAULT_TOP_K)
 
-    # 配置表
-    st.markdown("### 当前配置")
-    config_data = {
-        "LLM 模型": CHAT_MODEL,
-        "LLM API": DEEPSEEK_BASE_URL,
-        "Embedding 模型": EMBED_MODEL,
-        "Chunk 大小": f"{CHUNK_SIZE} 字符",
-        "Chunk 重叠": f"{CHUNK_OVERLAP} 字符",
+    st.markdown("#### 技术栈")
+
+    tech_data = [
+        ("LLM", CHAT_MODEL, "DeepSeek API（OpenAI 兼容接口）"),
+        ("Embedding", EMBED_MODEL, "本地中文模型，512 维"),
+        ("向量库", "Chroma 0.5.x", "轻量持久化，支持增量更新"),
+        ("切分", "ArticleAwareSplitter", "按条款结构切分，非固定字数"),
+        ("框架", "LangChain + Streamlit", "检索框架 + Web 界面"),
+    ]
+
+    for name, value, desc in tech_data:
+        st.markdown(f"**{name}** &nbsp; `{value}`")
+        st.caption(desc)
+
+    st.divider()
+    st.markdown("#### 架构")
+    st.code("""
+┌──────────────────────────────────────────────┐
+│  离线建库                                      │
+│  data/*.txt                                    │
+│    → 加载                                      │
+│    → Smart Split（按条款/序号/段落自适应切分）    │
+│    → bge-small-zh 向量化                       │
+│    → Chroma 存储                               │
+└──────────────────────────────────────────────┘
+                        ↕
+┌──────────────────────────────────────────────┐
+│  在线问答                                      │
+│  用户问题 → 向量化 → 检索 Top-K 片段            │
+│           → 拼入 Prompt + 反幻觉约束            │
+│           → DeepSeek API 流式生成               │
+│           → 带法条引用的结构化回答               │
+└──────────────────────────────────────────────┘
+""", language=None)
+
+    st.divider()
+    st.markdown("#### 参数")
+    params = {
+        "Fallback Chunk Size": f"{CHUNK_SIZE} 字符",
+        "Chunk Overlap": f"{CHUNK_OVERLAP} 字符",
         "默认 Top-K": DEFAULT_TOP_K,
-        "向量维度": "512 维",
-        "向量库": "Chroma 0.5.x",
+        "合并阈值": "150 字符（短条款合并）",
+        "二次切分阈值": "800 字符（长条款拆分）",
+        "Temperature": "0.2",
     }
-    for k, v in config_data.items():
-        st.markdown(f"- **{k}**：`{v}`")
-
-    # 架构图
-    st.divider()
-    st.markdown("### 🏗️ RAG 架构")
-    st.markdown("""
-    ```
-    ┌─────────────────────────────────────────────────┐
-    │  离线建库                                        │
-    │  data/*.txt → 加载 → 切分 → 向量化 → Chroma 存储 │
-    └─────────────────────────────────────────────────┘
-                            ↕
-    ┌─────────────────────────────────────────────────┐
-    │  在线问答                                        │
-    │  用户问题 → 向量化 → 检索 Top-K → 拼 Prompt      │
-    │          → DeepSeek API → 带引用的回答            │
-    └─────────────────────────────────────────────────┘
-    ```
-    """)
-
-    # 面试要点
-    st.divider()
-    st.markdown("### 🎯 面试要点速查")
-    points = {
-        "RAG 七步链路": "加载 → 切分 → 向量化 → 存储（离线）→ 问题向量化 → 检索 Top-K → 拼 Prompt 生成（在线）",
-        "防幻觉三板斧": "Prompt 约束'只用原文' + 给拒答退路 + 低 temperature（0.2）",
-        "引用溯源": "chunk 带 metadata → Prompt 里标注来源 → 要求模型引用",
-        "排障思路": "答案不对 → 先看检索 → 检索没找对改检索，检索找对了改 Prompt",
-        "调优记录": "Top-K 3→5 解决跨文件对比检索覆盖不足，回归测试 10/10 无副作用",
-    }
-    for title, desc in points.items():
-        st.markdown(f"**{title}**：{desc}")
+    for k, v in params.items():
+        col1, col2 = st.columns([1, 2])
+        col1.markdown(f"**{k}**")
+        col2.code(str(v), language=None)
