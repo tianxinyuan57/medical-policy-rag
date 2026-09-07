@@ -283,8 +283,12 @@ RAG_SYSTEM_PROMPT = """你是一位资深医疗政策顾问，既熟悉法律条
 
 
 def rag_retrieve(question: str, top_k: int = 5, graph_k: int = 2):
-    """混合检索 + 图谱扩展，返回 (context_str, retrieval_info)。"""
+    """混合检索 + 图谱扩展，返回 (context_str, retrieval_info, extras)。"""
     retriever = load_retriever()
+
+    # 术语归一化改写（口语 → 法规术语）
+    rw = retriever.rewrite_query(question)
+
     results, graph_notes = retriever.retrieve_with_graph(
         question, top_k=top_k, graph_k=graph_k
     )
@@ -310,7 +314,57 @@ def rag_retrieve(question: str, top_k: int = 5, graph_k: int = 2):
         })
 
     context = "\n\n".join(context_blocks)
-    return context, retrieval_info
+    extras = {"rewrite": rw, "docs": results}
+    return context, retrieval_info, extras
+
+
+def render_citation_check(result):
+    """渲染引用校验结果。"""
+    if result.total == 0:
+        return
+
+    ok = result.verified_count == result.total
+    bg = "rgba(16,185,129,.10)" if ok else "rgba(245,158,11,.12)"
+    border = "#10b981" if ok else "#f59e0b"
+    icon = "🛡️" if ok else "⚠️"
+
+    rows = ""
+    for c in result.citations:
+        if c.verified:
+            mark, color = "✅", "#10b981"
+            extra = (' <span style="opacity:.6;font-size:.72rem;">（简称引用）</span>'
+                     if c.is_abbrev else "")
+        else:
+            mark, color = "❌", "#ef4444"
+            extra = f' <span style="opacity:.7;font-size:.72rem;">— {c.note}</span>'
+        rows += (f'<div style="margin:3px 0;font-size:.8rem;">'
+                 f'<span style="color:{color};">{mark}</span> '
+                 f'《{c.law}》{c.article}{extra}</div>')
+
+    st.markdown(f"""<div style="background:{bg};border-left:3px solid {border};
+        border-radius:0 8px 8px 0;padding:10px 14px;margin:8px 0;">
+        <div style="font-size:.85rem;font-weight:600;margin-bottom:6px;">
+            {icon} 引用校验 · {result.summary()}</div>
+        {rows}
+    </div>""", unsafe_allow_html=True)
+
+
+def render_rewrite_info(rw: dict):
+    """渲染查询改写信息。"""
+    if not rw.get("changed"):
+        return
+    pairs = " · ".join(
+        f"「{s}」→ {'/'.join(t)}" for s, t in rw.get("dict_hits", [])
+    )
+    if rw.get("llm_terms"):
+        pairs += f" · LLM补充：{rw['llm_terms']}"
+    if not pairs:
+        return
+    st.markdown(f"""<div style="background:rgba(99,102,241,.10);
+        border-left:3px solid #6366f1;border-radius:0 8px 8px 0;
+        padding:8px 13px;margin:6px 0;font-size:.78rem;color:#818cf8;">
+        🔤 <b>术语归一化</b> &nbsp; {pairs}
+    </div>""", unsafe_allow_html=True)
 
 
 def render_retrieval_cards(items: list[dict]):
@@ -436,7 +490,39 @@ if page == "💬 对话":
         # 渲染历史对话
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"], avatar="🧑‍💻" if msg["role"] == "user" else "🤖"):
+                if msg["role"] == "assistant" and msg.get("rewrite"):
+                    render_rewrite_info(msg["rewrite"])
+
                 st.markdown(msg["content"])
+
+                # 引用校验结果
+                if msg["role"] == "assistant" and msg.get("verify"):
+                    v = msg["verify"]
+                    if v["total"]:
+                        ok = v["verified"] == v["total"]
+                        bg = ("rgba(16,185,129,.10)" if ok
+                              else "rgba(245,158,11,.12)")
+                        bd = "#10b981" if ok else "#f59e0b"
+                        rows = ""
+                        for c in v["citations"]:
+                            mk = "✅" if c["verified"] else "❌"
+                            cl = "#10b981" if c["verified"] else "#ef4444"
+                            ex = ""
+                            if c["verified"] and c.get("is_abbrev"):
+                                ex = ' <span style="opacity:.6;font-size:.72rem;">（简称引用）</span>'
+                            elif not c["verified"]:
+                                ex = f' <span style="opacity:.7;font-size:.72rem;">— {c["note"]}</span>'
+                            rows += (f'<div style="margin:3px 0;font-size:.8rem;">'
+                                     f'<span style="color:{cl};">{mk}</span> '
+                                     f'《{c["law"]}》{c["article"]}{ex}</div>')
+                        st.markdown(f"""<div style="background:{bg};
+                            border-left:3px solid {bd};border-radius:0 8px 8px 0;
+                            padding:10px 14px;margin:8px 0;">
+                            <div style="font-size:.85rem;font-weight:600;
+                                 margin-bottom:6px;">
+                                {'🛡️' if ok else '⚠️'} 引用校验 · {v['summary']}</div>
+                            {rows}
+                        </div>""", unsafe_allow_html=True)
 
                 # 助手消息的元信息
                 if msg["role"] == "assistant" and "elapsed" in msg:
@@ -466,10 +552,13 @@ if page == "💬 对话":
         with st.chat_message("assistant", avatar="🤖"):
             t0 = time.time()
 
-            # 检索
-            context, retrieval_info = rag_retrieve(
+            # 检索（含术语归一化 + 图谱扩展）
+            context, retrieval_info, extras = rag_retrieve(
                 question, top_k=top_k, graph_k=graph_k)
             user_prompt = f"【参考原文】\n{context}\n\n【问题】\n{question}"
+
+            # 术语改写提示
+            render_rewrite_info(extras["rewrite"])
 
             # 流式生成
             stream = ask_llm_stream(RAG_SYSTEM_PROMPT, user_prompt)
@@ -480,7 +569,14 @@ if page == "💬 对话":
             )
 
             elapsed = time.time() - t0
-            st.caption(f"⏱️ {elapsed:.1f}s · Top-K={top_k} · {len(retrieval_info)} 个片段")
+
+            # 引用校验：核对回答里每处「《X法》第Y条」是否真在检索片段中
+            from citation_verifier import verify
+            verify_result = verify(full_answer, extras["docs"])
+            render_citation_check(verify_result)
+
+            st.caption(f"⏱️ {elapsed:.1f}s · Top-K={top_k} · "
+                       f"{len(retrieval_info)} 个片段")
 
         # 保存历史
         st.session_state.messages.append({
@@ -489,6 +585,18 @@ if page == "💬 对话":
             "retrieval": retrieval_info,
             "elapsed": elapsed,
             "top_k": top_k,
+            "rewrite": extras["rewrite"],
+            "verify": {
+                "total": verify_result.total,
+                "verified": verify_result.verified_count,
+                "summary": verify_result.summary(),
+                "citations": [
+                    {"law": c.law, "article": c.article,
+                     "verified": c.verified, "note": c.note,
+                     "is_abbrev": c.is_abbrev}
+                    for c in verify_result.citations
+                ],
+            },
         })
 
         # 检索详情
@@ -708,7 +816,7 @@ elif page == "📊 评估":
             if ret_eval["hit"]:
                 retrieval_pass += 1
 
-            context, _ = rag_retrieve(q, top_k=top_k, graph_k=graph_k)
+            context, _, _ = rag_retrieve(q, top_k=top_k, graph_k=graph_k)
             user_prompt = f"【参考原文】\n{context}\n\n【问题】\n{q}"
             ans_text = ""
             stream = ask_llm_stream(RAG_SYSTEM_PROMPT, user_prompt)

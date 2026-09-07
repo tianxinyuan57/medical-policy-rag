@@ -320,6 +320,7 @@ class HybridRetriever:
         top_k: int = TOP_K,
         candidate_k: int = CANDIDATE_K,
         return_scores: bool = False,
+        rewrite_query: bool = True,
     ) -> list[Document]:
         """完整的混合检索流程。
 
@@ -328,10 +329,14 @@ class HybridRetriever:
             top_k: 最终返回的片段数
             candidate_k: 每路检索的候选数（融合前）
             return_scores: metadata 里是否附带检索分数（调试用）
+            rewrite_query: 是否做术语归一化改写（口语 → 法规术语）
 
         Returns:
             list[Document]: 排序后的文档列表
         """
+        if rewrite_query:
+            query = self.rewrite_query(query)["rewritten"]
+
         # ① BM25 检索
         bm25_idx = self._search_bm25(query, candidate_k)
 
@@ -357,6 +362,22 @@ class HybridRetriever:
                 m[score_name] = round(score, 4)
             docs.append(Document(page_content=text, metadata=m))
         return docs
+
+    # ---------- 查询改写 ----------
+
+    @staticmethod
+    def rewrite_query(query: str) -> dict:
+        """术语归一化改写（口语 → 法规术语）。
+
+        扩展式改写：保留原问题给向量检索，追加术语喂给 BM25。
+        详见 query_rewriter.py。
+        """
+        try:
+            from query_rewriter import rewrite
+            return rewrite(query)
+        except Exception:
+            return {"original": query, "rewritten": query,
+                    "dict_hits": [], "llm_terms": "", "changed": False}
 
     # ---------- 图增强检索（GraphRAG）----------
 
@@ -384,8 +405,14 @@ class HybridRetriever:
         Returns:
             (文档列表, 扩展说明列表)
         """
-        # ① 基础混合检索
-        base_docs = self.retrieve(query, top_k=top_k, candidate_k=candidate_k)
+        # ⓪ 术语归一化改写（口语 → 法规术语）
+        rw = self.rewrite_query(query)
+        search_query = rw["rewritten"]
+
+        # ① 基础混合检索（已改写，故关掉内部改写避免重复）
+        base_docs = self.retrieve(search_query, top_k=top_k,
+                                  candidate_k=candidate_k,
+                                  rewrite_query=False)
 
         if graph_k <= 0:
             return base_docs, []
@@ -416,7 +443,7 @@ class HybridRetriever:
         #
         # 注意：不能随便取该法规的第一个片段 —— 那通常是"前言/总则"，
         # 对回答毫无价值。必须在该法规的片段子集里做相关性排序。
-        query_tokens = tokenize_zh(query)
+        query_tokens = tokenize_zh(search_query)
         extra_docs = []
         notes = []
 
