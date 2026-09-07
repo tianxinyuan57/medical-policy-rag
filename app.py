@@ -206,7 +206,7 @@ st.markdown("""
 /* ── 隐藏默认页脚 ── */
 footer {visibility: hidden;}
 </style>
-""")
+""", unsafe_allow_html=True)
 
 
 # ── 缓存加载 ──────────────────────────────────────────
@@ -534,36 +534,62 @@ if page == "💬 对话":
 
     # 空状态：显示 hero + 示例
     if not st.session_state.messages:
-        st.markdown("""
+        st_html("""
         <div class="hero-section">
-            <h1>🏥 医疗政策智能问答</h1>
-            <p>基于 94 部公开法规及政策文件 · 条款级检索 · 引用可溯源</p>
+        <h1>🏥 医疗政策智能助手</h1>
+        <p>不只是问答 —— 贴进制度、场景、案例或文件，系统会自动判断该怎么帮你</p>
         </div>
         """)
 
-        st.markdown("##### 💡 试试这些问题")
+        st.markdown("##### 💡 试试这些")
 
         examples = [
-            ("🩸", "无偿献血的年龄范围是多少？"),
-            ("💊", "什么是假药？列举假药的情形。"),
-            ("🩺", "医师和护士在紧急情况下的责任有什么不同？"),
-            ("🌿", "以师承方式学中医可以行医吗？需要什么条件？"),
-            ("📋", "发生医疗纠纷后，患者有权查阅哪些病历资料？"),
-            ("🏥", "甲类传染病包括哪些？"),
+            ("❓", "提问",
+             "无偿献血的年龄范围是多少？"),
+            ("❓", "提问",
+             "什么是假药？列举假药的情形。"),
+            ("🔍", "把自己的制度贴进来，看合不合规",
+             "我院麻醉药品管理规定：\n"
+             "第五条 麻醉药品处方由科室主任统一开具，医师需要时向科室主任申请。\n"
+             "第六条 麻醉药品处方保存一年后销毁。\n"
+             "第七条 麻醉药品由病区护士长负责保管，使用后在登记本上记录。"),
+            ("📋", "说说要办的事，看需要什么条件",
+             "我们医院准备开展互联网诊疗服务，需要满足什么条件？"),
+            ("⚖️", "描述一个纠纷，看法律上怎么看",
+             "患者要求复印全部病历，我们只给了住院志，他现在说要投诉我们。"),
+            ("🌿", "提问",
+             "以师承方式学中医可以行医吗？需要什么条件？"),
         ]
 
         cols = st.columns(2)
-        for i, (icon, q) in enumerate(examples):
+        for i, (icon, label, q) in enumerate(examples):
             with cols[i % 2]:
+                preview = q.split("\n")[0]
+                preview = preview[:26] + ("…" if len(preview) > 26 else "")
                 st.markdown('<div class="example-btn">', unsafe_allow_html=True)
-                if st.button(f"{icon}  {q}", key=f"ex_{i}", use_container_width=True):
+                if st.button(f"{icon}  {preview}", key=f"ex_{i}",
+                             help=f"{label}\n\n{q}",
+                             use_container_width=True):
                     st.session_state["pending_q"] = q
                 st.markdown('</div>', unsafe_allow_html=True)
+
+        st.caption("💡 输入框支持多行 —— 粘贴整段制度或文件也可以")
 
     else:
         # 渲染历史对话
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"], avatar="🧑‍💻" if msg["role"] == "user" else "🤖"):
+                # 多跳类型徽章
+                if msg["role"] == "assistant" and msg.get("multihop"):
+                    m = msg["multihop"]
+                    st_html(f"""<div style="background:rgba(99,102,241,.10);
+                    border-left:3px solid #6366f1;border-radius:0 8px 8px 0;
+                    padding:8px 13px;margin:6px 0;font-size:.78rem;
+                    color:#818cf8;">
+                    {m['type_icon']} <b>识别为「{m['type_cn']}」</b> ·
+                    已拆解为 {m['hop_count']} 个要点并逐点检索
+                    </div>""")
+
                 if msg["role"] == "assistant" and msg.get("rewrite"):
                     render_rewrite_info(msg["rewrite"])
 
@@ -610,6 +636,27 @@ if page == "💬 对话":
                 if msg["role"] == "assistant" and "elapsed" in msg:
                     st.caption(f"⏱️ {msg['elapsed']:.1f}s · Top-K={msg.get('top_k', 5)} · {len(msg.get('retrieval', []))} 个片段")
 
+            # 多跳推理链路
+            if msg["role"] == "assistant" and msg.get("multihop"):
+                m = msg["multihop"]
+                with st.expander(f"🔗 查看 {m['hop_count']} 跳推理过程",
+                                 expanded=False):
+                    for i, p in enumerate(m["points"], 1):
+                        srcs = ', '.join('《' + s + '》'
+                                         for s in p["sources"][:4])
+                        st_html(f"""<div class="retrieval-card"
+                        style="border-left-color:#6366f1;">
+                        <span class="source-tag"
+                        style="background:#3730a3;color:#c7d2fe;">
+                        第 {i} 跳</span>
+                        <div style="margin-top:6px;font-size:.85rem;
+                        color:#e2e8f0;"><b>{p['claim']}</b></div>
+                        <div style="margin-top:4px;font-size:.75rem;
+                        color:#a5b4fc;">🔎 检索：{p['query']}</div>
+                        <div style="margin-top:4px;font-size:.75rem;
+                        color:#94a3b8;">📄 命中：{srcs}</div>
+                        </div>""")
+
             # 检索详情
             if msg["role"] == "assistant" and msg.get("retrieval"):
                 n_graph = sum(1 for it in msg["retrieval"]
@@ -620,7 +667,7 @@ if page == "💬 对话":
                     render_retrieval_cards(msg["retrieval"])
 
     # 输入框
-    question = st.chat_input("输入医疗政策相关问题...")
+    question = st.chat_input("提问，或粘贴一段制度/场景/案例/文件…")
     if question is None and "pending_q" in st.session_state:
         question = st.session_state.pop("pending_q")
 
@@ -630,38 +677,112 @@ if page == "💬 对话":
         with st.chat_message("user", avatar="🧑‍💻"):
             st.markdown(question)
 
-        # 助手回答（流式）
+        # 助手回答
         with st.chat_message("assistant", avatar="🤖"):
             t0 = time.time()
 
-            # 检索（含术语归一化 + 图谱扩展）
-            context, retrieval_info, extras = rag_retrieve(
-                question, top_k=top_k, graph_k=graph_k)
-            user_prompt = f"【参考原文】\n{context}\n\n【问题】\n{question}"
+            from multihop import prepare, build_synth_prompt, INPUT_TYPES
+            from citation_verifier import verify
 
-            # 术语改写提示
-            render_rewrite_info(extras["rewrite"])
+            # ── 先判断输入是什么，再决定走单跳还是多跳 ──
+            status = st.empty()
 
-            # 检索置信度预警（在生成前提示，让用户有心理预期）
-            render_confidence(extras["confidence"])
+            def _progress(stage, detail):
+                icons = {"detect": "🔎", "decompose": "✂️", "retrieve": "🔗"}
+                status.markdown(
+                    f'<div style="font-size:.8rem;color:#818cf8;">'
+                    f'{icons.get(stage, "⏳")} {detail}…</div>',
+                    unsafe_allow_html=True)
 
-            # 流式生成
-            stream = ask_llm_stream(RAG_SYSTEM_PROMPT, user_prompt)
-            full_answer = st.write_stream(
-                (chunk.choices[0].delta.content or ""
-                 for chunk in stream
-                 if chunk.choices[0].delta.content is not None)
-            )
+            mh = prepare(question, load_retriever(),
+                         top_k=4, graph_k=1, progress=_progress)
+            status.empty()
+
+            multihop_used = mh.input_type != "question"
+
+            # 输入类型徽章（非提问时才显示，避免打扰日常问答）
+            if multihop_used:
+                ti = INPUT_TYPES[mh.input_type]
+                st_html(f"""<div style="background:rgba(99,102,241,.10);
+                border-left:3px solid #6366f1;border-radius:0 8px 8px 0;
+                padding:8px 13px;margin:6px 0;font-size:.78rem;color:#818cf8;">
+                {ti['icon']} <b>识别为「{ti['cn']}」</b> · 已拆解为
+                {mh.hop_count} 个要点并逐点检索
+                <span style="opacity:.6;">（{ti['desc']}）</span>
+                </div>""")
+
+            if multihop_used:
+                # ── 多跳：拆解 → N 次检索 → 综合 ──
+                sys_p, usr_p = build_synth_prompt(
+                    question, mh.input_type, mh.points)
+                stream = ask_llm_stream(sys_p, usr_p)
+                full_answer = st.write_stream(
+                    (c.choices[0].delta.content or ""
+                     for c in stream
+                     if c.choices[0].delta.content is not None))
+
+                docs_for_verify = mh.all_docs
+                retrieval_info = [{
+                    "index": i + 1,
+                    "source": os.path.basename(
+                        d.metadata.get("source", "")).replace(".txt", ""),
+                    "content": d.page_content,
+                    "label": d.metadata.get("article_label", ""),
+                    "graph_expanded": bool(d.metadata.get("graph_expanded")),
+                    "graph_reason": d.metadata.get("graph_reason", ""),
+                } for i, d in enumerate(mh.all_docs)]
+                rewrite_info, conf_info = None, None
+
+            else:
+                # ── 单跳：原有问答流程 ──
+                context, retrieval_info, extras = rag_retrieve(
+                    question, top_k=top_k, graph_k=graph_k)
+                usr_p = f"【参考原文】\n{context}\n\n【问题】\n{question}"
+
+                render_rewrite_info(extras["rewrite"])
+                render_confidence(extras["confidence"])
+
+                stream = ask_llm_stream(RAG_SYSTEM_PROMPT, usr_p)
+                full_answer = st.write_stream(
+                    (c.choices[0].delta.content or ""
+                     for c in stream
+                     if c.choices[0].delta.content is not None))
+
+                docs_for_verify = extras["docs"]
+                rewrite_info = extras["rewrite"]
+                conf_info = extras["confidence"]
 
             elapsed = time.time() - t0
 
-            # 引用校验：核对回答里每处「《X法》第Y条」是否真在检索片段中
-            from citation_verifier import verify
-            verify_result = verify(full_answer, extras["docs"])
+            # 引用校验（两条路径都做）
+            verify_result = verify(full_answer, docs_for_verify)
             render_citation_check(verify_result)
 
-            st.caption(f"⏱️ {elapsed:.1f}s · Top-K={top_k} · "
-                       f"{len(retrieval_info)} 个片段")
+            if multihop_used:
+                st.caption(f"⏱️ {elapsed:.1f}s · 🔗 {mh.hop_count} 跳检索 · "
+                           f"{len(retrieval_info)} 个片段")
+            else:
+                st.caption(f"⏱️ {elapsed:.1f}s · Top-K={top_k} · "
+                           f"{len(retrieval_info)} 个片段")
+
+            # 多跳的拆解过程（展示推理链路）
+            if multihop_used:
+                with st.expander(f"🔗 查看 {mh.hop_count} 跳推理过程",
+                                 expanded=False):
+                    for i, p in enumerate(mh.points, 1):
+                        st_html(f"""<div class="retrieval-card"
+                        style="border-left-color:#6366f1;">
+                        <span class="source-tag"
+                        style="background:#3730a3;color:#c7d2fe;">
+                        第 {i} 跳</span>
+                        <div style="margin-top:6px;font-size:.85rem;
+                        color:#e2e8f0;"><b>{p['claim']}</b></div>
+                        <div style="margin-top:4px;font-size:.75rem;
+                        color:#a5b4fc;">🔎 检索：{p['query']}</div>
+                        <div style="margin-top:4px;font-size:.75rem;
+                        color:#94a3b8;">📄 命中：{', '.join(
+                            '《' + s + '》' for s in p['sources'][:4])}</div>
+                        </div>""")
 
         # 保存历史
         st.session_state.messages.append({
@@ -670,13 +791,24 @@ if page == "💬 对话":
             "retrieval": retrieval_info,
             "elapsed": elapsed,
             "top_k": top_k,
-            "rewrite": extras["rewrite"],
-            "confidence": {
-                "level": extras["confidence"].level,
-                "score": extras["confidence"].score,
-                "reason": extras["confidence"].reason,
-                "message": extras["confidence"].user_message(),
-            },
+            # 多跳信息（单跳时为 None）
+            "multihop": ({
+                "type": mh.input_type,
+                "type_cn": mh.type_cn,
+                "type_icon": mh.type_icon,
+                "confidence": mh.type_confidence,
+                "hop_count": mh.hop_count,
+                "points": [{"claim": p["claim"], "query": p["query"],
+                            "sources": p["sources"]} for p in mh.points],
+            } if multihop_used else None),
+            # 单跳独有信息（多跳时为 None）
+            "rewrite": rewrite_info,
+            "confidence": ({
+                "level": conf_info.level,
+                "score": conf_info.score,
+                "reason": conf_info.reason,
+                "message": conf_info.user_message(),
+            } if conf_info else None),
             "verify": {
                 "total": verify_result.total,
                 "verified": verify_result.verified_count,
@@ -691,7 +823,7 @@ if page == "💬 对话":
             },
         })
 
-        # 检索详情
+        # 检索片段详情（多跳的推理链路已在上面单独展示）
         n_graph = sum(1 for it in retrieval_info if it.get("graph_expanded"))
         title = f"🔍 查看检索片段（{len(retrieval_info)} 个"
         title += f"，含 {n_graph} 个图谱关联）" if n_graph else "）"
@@ -729,16 +861,14 @@ elif page == "🕸️ 引用图谱":
     g = load_citation_graph()
     gs = g.stats()
 
-    st.markdown("""
+    st_html("""
     <div style="text-align:center;padding:1.2rem 0 0.6rem;">
-        <h2 style="margin:0 0 0.3rem;font-size:1.7rem;
-            background:linear-gradient(135deg,#60a5fa,#a78bfa);
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-            🕸️ 法条引用图谱
-        </h2>
-        <p style="color:#64748b;font-size:0.9rem;margin:0;">
-            法规不是孤立文本，而是相互引用的网络 —— 用结构化关系补充向量检索的盲区
-        </p>
+    <h2 style="margin:0 0 0.3rem;font-size:1.7rem;
+    background:linear-gradient(135deg,#60a5fa,#a78bfa);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+    🕸️ 法条引用图谱</h2>
+    <p style="color:#64748b;font-size:0.9rem;margin:0;">
+    法规不是孤立文本，而是相互引用的网络 —— 用结构化关系补充向量检索的盲区</p>
     </div>
     """)
 
