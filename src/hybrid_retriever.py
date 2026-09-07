@@ -358,6 +358,121 @@ class HybridRetriever:
             docs.append(Document(page_content=text, metadata=m))
         return docs
 
+    # ---------- 图增强检索（GraphRAG）----------
+
+    def retrieve_with_graph(
+        self,
+        query: str,
+        top_k: int = TOP_K,
+        graph_k: int = 2,
+        candidate_k: int = CANDIDATE_K,
+    ) -> tuple[list[Document], list[dict]]:
+        """混合检索 + 引用图谱扩展。
+
+        流程：
+          ① 混合检索拿到 Top-K 片段
+          ② 提取命中的法规名
+          ③ 沿引用边找强关联的邻居法规
+          ④ 从这些邻居法规里各补充 1 个最相关片段
+
+        【为什么需要图扩展？】
+        向量检索只能找到「字面/语义相似」的内容，
+        但法律问题的答案常常分散在有引用关系的多部法规里。
+        例如问「病历查阅权」，条例规定了权利，
+        但「病历具体包括哪些」在它引用的下位规定里。
+
+        Returns:
+            (文档列表, 扩展说明列表)
+        """
+        # ① 基础混合检索
+        base_docs = self.retrieve(query, top_k=top_k, candidate_k=candidate_k)
+
+        if graph_k <= 0:
+            return base_docs, []
+
+        # ② 提取命中的法规名
+        hit_sources = []
+        for d in base_docs:
+            src = os.path.basename(d.metadata.get("source", ""))
+            src = src.replace(".txt", "").replace(".pdf", "")
+            if src and src not in hit_sources:
+                hit_sources.append(src)
+
+        if not hit_sources:
+            return base_docs, []
+
+        # ③ 图扩展
+        try:
+            from citation_graph import get_graph
+            graph = get_graph()
+            expanded = graph.expand(hit_sources, max_add=graph_k)
+        except Exception:
+            return base_docs, []
+
+        if not expanded:
+            return base_docs, []
+
+        # ④ 从每部扩展法规里挑 1 个**与问题最相关**的片段
+        #
+        # 注意：不能随便取该法规的第一个片段 —— 那通常是"前言/总则"，
+        # 对回答毫无价值。必须在该法规的片段子集里做相关性排序。
+        query_tokens = tokenize_zh(query)
+        extra_docs = []
+        notes = []
+
+        for law_name, reason, weight in expanded:
+            picked = self._best_chunk_in_law(law_name, query_tokens)
+            if picked is None:
+                continue
+
+            m = dict(picked.metadata)
+            m["graph_expanded"] = True
+            m["graph_reason"] = reason
+            extra_docs.append(
+                Document(page_content=picked.page_content, metadata=m)
+            )
+            notes.append({
+                "law": law_name,
+                "reason": reason,
+                "weight": weight,
+                "label": m.get("article_label", ""),
+            })
+
+        return base_docs + extra_docs, notes
+
+    def _best_chunk_in_law(self, law_name: str,
+                           query_tokens: list[str]) -> Document | None:
+        """在指定法规的所有片段里，找与查询词最匹配的一个。
+
+        用 BM25 的思路做轻量打分：统计查询词在片段里的出现情况，
+        并对"前言/总则"类片段降权（它们通常只有立法目的，无实质内容）。
+        """
+        best = None
+        best_score = -1.0
+
+        for i, meta in enumerate(self.corpus_metas):
+            src = os.path.basename((meta or {}).get("source", ""))
+            if law_name not in src:
+                continue
+
+            text = self.corpus_texts[i]
+            # 词频得分：查询词命中数 / 片段长度的平方根（抑制长片段优势）
+            hits = sum(text.count(t) for t in query_tokens if len(t) > 1)
+            if hits == 0:
+                continue
+            score = hits / (len(text) ** 0.5 + 1)
+
+            # 前言/总则降权：这类片段一般只讲立法目的
+            label = (meta or {}).get("article_label", "")
+            if not label or "前言" in text[:30]:
+                score *= 0.35
+
+            if score > best_score:
+                best_score = score
+                best = Document(page_content=text, metadata=dict(meta or {}))
+
+        return best
+
     # ---------- 对比用：单路检索 ----------
 
     def retrieve_vector_only(self, query: str, top_k: int = TOP_K) -> list[Document]:

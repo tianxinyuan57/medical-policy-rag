@@ -233,6 +233,13 @@ def load_retriever():
     return HybridRetriever(vs)
 
 
+@st.cache_resource(show_spinner="正在构建引用图谱...")
+def load_citation_graph():
+    """加载法条引用图谱。"""
+    from citation_graph import CitationGraph
+    return CitationGraph()
+
+
 @st.cache_resource
 def load_llm_client():
     from openai import OpenAI
@@ -275,29 +282,74 @@ RAG_SYSTEM_PROMPT = """你是一位资深医疗政策顾问，既熟悉法律条
 """
 
 
-def rag_retrieve(question: str, top_k: int = 5):
-    """混合检索相关片段，返回 (context_str, retrieval_info)。"""
+def rag_retrieve(question: str, top_k: int = 5, graph_k: int = 2):
+    """混合检索 + 图谱扩展，返回 (context_str, retrieval_info)。"""
     retriever = load_retriever()
-    results = retriever.retrieve(question, top_k=top_k)
+    results, graph_notes = retriever.retrieve_with_graph(
+        question, top_k=top_k, graph_k=graph_k
+    )
 
     context_blocks = []
     retrieval_info = []
     for i, doc in enumerate(results):
         src = os.path.basename(doc.metadata.get("source", "未知"))
         src_name = src.replace(".txt", "").replace(".pdf", "")
-        context_blocks.append(
-            f"[片段{i+1}｜来源：《{src_name}》]\n{doc.page_content}"
-        )
+        is_graph = bool(doc.metadata.get("graph_expanded"))
+
+        tag = (f"[片段{i+1}｜来源：《{src_name}》｜关联法规]" if is_graph
+               else f"[片段{i+1}｜来源：《{src_name}》]")
+        context_blocks.append(f"{tag}\n{doc.page_content}")
+
         retrieval_info.append({
             "index": i + 1,
             "source": src_name,
             "content": doc.page_content,
-            "method": doc.metadata.get("chunk_method", "fixed"),
             "label": doc.metadata.get("article_label", ""),
+            "graph_expanded": is_graph,
+            "graph_reason": doc.metadata.get("graph_reason", ""),
         })
 
     context = "\n\n".join(context_blocks)
     return context, retrieval_info
+
+
+def render_retrieval_cards(items: list[dict]):
+    """渲染检索片段卡片，图扩展的片段有独立配色和来源说明。"""
+    for item in items:
+        is_g = item.get("graph_expanded")
+        border = "#a78bfa" if is_g else "#3b82f6"
+        tag_bg = "#3730a3" if is_g else "#dbeafe"
+        tag_fg = "#c7d2fe" if is_g else "#1d4ed8"
+
+        label_html = ""
+        if item.get("label"):
+            label_html = (f' · <span class="source-tag" '
+                          f'style="background:{tag_bg};color:{tag_fg};">'
+                          f'{item["label"]}</span>')
+
+        badge = ""
+        if is_g:
+            badge = ('<span class="source-tag" style="background:#4c1d95;'
+                     'color:#ddd6fe;">🕸️ 图谱关联</span> ')
+
+        reason_html = ""
+        if is_g and item.get("graph_reason"):
+            reason_html = (f'<div style="margin-top:6px;font-size:0.72rem;'
+                           f'color:#a5b4fc;opacity:.85;">'
+                           f'↳ {item["graph_reason"]}</div>')
+
+        content = item["content"]
+        preview = content[:300] + ("..." if len(content) > 300 else "")
+
+        st.markdown(f"""<div class="retrieval-card"
+            style="border-left-color:{border};">
+            {badge}<span class="source-tag"
+                style="background:{tag_bg};color:{tag_fg};">
+                📄 {item['source']}</span>{label_html}
+            <div style="margin-top:6px;color:#475569;line-height:1.6;">
+                {preview}</div>
+            {reason_html}
+        </div>""", unsafe_allow_html=True)
 
 
 # ── 侧边栏 ───────────────────────────────────────────
@@ -310,7 +362,7 @@ with st.sidebar:
 
     page = st.radio(
         "导航",
-        ["💬 对话", "📊 评估", "📚 知识库", "⚙️ 系统"],
+        ["💬 对话", "🕸️ 引用图谱", "📊 评估", "📚 知识库", "⚙️ 系统"],
         label_visibility="collapsed",
     )
 
@@ -332,6 +384,13 @@ with st.sidebar:
     top_k = st.slider("Top-K", min_value=1, max_value=10, value=5,
                        help="检索返回的片段数", label_visibility="collapsed")
     st.caption(f"Top-K = {top_k}")
+
+    use_graph = st.toggle("🕸️ 引用图谱扩展", value=True,
+                          help="沿法条引用关系补充召回关联法规")
+    graph_k = st.slider("扩展法规数", 1, 4, 2,
+                        label_visibility="collapsed") if use_graph else 0
+    if use_graph:
+        st.caption(f"额外召回 {graph_k} 部关联法规")
 
     st.divider()
     st.caption("⚠️ 仅使用公开法规文本，不构成法律建议")
@@ -385,13 +444,12 @@ if page == "💬 对话":
 
             # 检索详情
             if msg["role"] == "assistant" and msg.get("retrieval"):
-                with st.expander("🔍 查看检索片段", expanded=False):
-                    for item in msg["retrieval"]:
-                        st.markdown(f"""<div class="retrieval-card">
-                            <span class="source-tag">📄 {item['source']}</span>
-                            {' · <span class="source-tag">' + item['label'] + '</span>' if item.get('label') else ''}
-                            <div style="margin-top:6px; color:#475569; line-height:1.6;">{item['content'][:300]}{'...' if len(item['content']) > 300 else ''}</div>
-                        </div>""", unsafe_allow_html=True)
+                n_graph = sum(1 for it in msg["retrieval"]
+                              if it.get("graph_expanded"))
+                title = f"🔍 查看检索片段（{len(msg['retrieval'])} 个"
+                title += f"，含 {n_graph} 个图谱关联）" if n_graph else "）"
+                with st.expander(title, expanded=False):
+                    render_retrieval_cards(msg["retrieval"])
 
     # 输入框
     question = st.chat_input("输入医疗政策相关问题...")
@@ -409,7 +467,8 @@ if page == "💬 对话":
             t0 = time.time()
 
             # 检索
-            context, retrieval_info = rag_retrieve(question, top_k=top_k)
+            context, retrieval_info = rag_retrieve(
+                question, top_k=top_k, graph_k=graph_k)
             user_prompt = f"【参考原文】\n{context}\n\n【问题】\n{question}"
 
             # 流式生成
@@ -433,13 +492,11 @@ if page == "💬 对话":
         })
 
         # 检索详情
-        with st.expander("🔍 查看检索片段", expanded=False):
-            for item in retrieval_info:
-                st.markdown(f"""<div class="retrieval-card">
-                    <span class="source-tag">📄 {item['source']}</span>
-                    {' · <span class="source-tag">' + item['label'] + '</span>' if item.get('label') else ''}
-                    <div style="margin-top:6px; color:#475569; line-height:1.6;">{item['content'][:300]}{'...' if len(item['content']) > 300 else ''}</div>
-                </div>""", unsafe_allow_html=True)
+        n_graph = sum(1 for it in retrieval_info if it.get("graph_expanded"))
+        title = f"🔍 查看检索片段（{len(retrieval_info)} 个"
+        title += f"，含 {n_graph} 个图谱关联）" if n_graph else "）"
+        with st.expander(title, expanded=False):
+            render_retrieval_cards(retrieval_info)
 
     # 底部操作栏
     if st.session_state.messages:
@@ -461,6 +518,161 @@ if page == "💬 对话":
                 mime="application/json",
                 use_container_width=True,
             )
+
+
+# ── 页面：引用图谱 ────────────────────────────────────
+
+elif page == "🕸️ 引用图谱":
+    import streamlit.components.v1 as components
+    from graph_viz import build_graph_html, build_ego_graph_html
+
+    g = load_citation_graph()
+    gs = g.stats()
+
+    st.markdown("""
+    <div style="text-align:center;padding:1.2rem 0 0.6rem;">
+        <h2 style="margin:0 0 0.3rem;font-size:1.7rem;
+            background:linear-gradient(135deg,#60a5fa,#a78bfa);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+            🕸️ 法条引用图谱
+        </h2>
+        <p style="color:#64748b;font-size:0.9rem;margin:0;">
+            法规不是孤立文本，而是相互引用的网络 —— 用结构化关系补充向量检索的盲区
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 指标卡
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("有引用关系", f"{gs['connected_count']} 部",
+              f"共 {gs['node_count']} 部")
+    m2.metric("引用边", f"{gs['edge_count']} 条")
+    m3.metric("引用总数", f"{gs['total_citations']} 处")
+    based = gs["type_distribution"].get("based_on", 0)
+    m4.metric("依据关系", f"{based} 条", "下位法→上位法")
+
+    st.markdown("")
+
+    # ── 主图 ──
+    min_w = st.select_slider(
+        "边过滤（引用次数下限）",
+        options=[1, 2, 3, 5],
+        value=1,
+        help="调高可以过滤弱关联，只看强引用关系",
+    )
+
+    vis_data = g.to_vis_json(min_weight=min_w)
+    if vis_data["nodes"]:
+        components.html(
+            build_graph_html(vis_data, height=660),
+            height=680,
+            scrolling=False,
+        )
+    else:
+        st.info("当前过滤条件下没有边，请调低阈值")
+
+    # ── 图谱洞察 ──
+    st.markdown("### 📈 图谱洞察")
+    c1, c2 = st.columns(2)
+
+    with c1:
+        st.markdown("**📥 被引用最多** — 法律位阶高、基础性强")
+        for n, d in gs["most_cited"][:8]:
+            pct = d / gs["most_cited"][0][1] if gs["most_cited"] else 0
+            st.markdown(f"""<div style="display:flex;align-items:center;
+                gap:10px;margin-bottom:6px;font-size:0.83rem;">
+                <div style="width:26px;text-align:right;color:#60a5fa;
+                     font-weight:600;">{d}</div>
+                <div style="flex:1;background:rgba(96,165,250,.12);
+                     border-radius:4px;height:22px;position:relative;">
+                    <div style="width:{pct*100:.0f}%;height:100%;
+                         background:linear-gradient(90deg,#3b82f6,#60a5fa);
+                         border-radius:4px;"></div>
+                    <div style="position:absolute;left:8px;top:2px;
+                         font-size:0.78rem;">{n[:22]}</div>
+                </div>
+            </div>""", unsafe_allow_html=True)
+
+    with c2:
+        st.markdown("**📤 引用他人最多** — 综合性、依赖性强")
+        for n, d in gs["most_citing"][:8]:
+            pct = d / gs["most_citing"][0][1] if gs["most_citing"] else 0
+            st.markdown(f"""<div style="display:flex;align-items:center;
+                gap:10px;margin-bottom:6px;font-size:0.83rem;">
+                <div style="width:26px;text-align:right;color:#34d399;
+                     font-weight:600;">{d}</div>
+                <div style="flex:1;background:rgba(52,211,153,.12);
+                     border-radius:4px;height:22px;position:relative;">
+                    <div style="width:{pct*100:.0f}%;height:100%;
+                         background:linear-gradient(90deg,#10b981,#34d399);
+                         border-radius:4px;"></div>
+                    <div style="position:absolute;left:8px;top:2px;
+                         font-size:0.78rem;">{n[:22]}</div>
+                </div>
+            </div>""", unsafe_allow_html=True)
+
+    st.caption("💡 图谱自动发现了法律位阶结构 —— "
+               "被引用最多的正是《医疗机构管理条例》《药品管理法》《医师法》等基础法规")
+
+    # ── 单点探查 ──
+    st.divider()
+    st.markdown("### 🔎 探查单部法规的引用网络")
+
+    connected_nodes = sorted(
+        n for n in g.nodes
+        if g.out_edges.get(n) or g.in_edges.get(n)
+    )
+    picked = st.selectbox("选择法规", connected_nodes,
+                          index=connected_nodes.index("药品管理法")
+                          if "药品管理法" in connected_nodes else 0)
+
+    if picked:
+        out_e = g.neighbors(picked, "out")
+        in_e = g.neighbors(picked, "in")
+
+        ego_html = build_ego_graph_html(g, picked, height=360)
+        if ego_html:
+            components.html(ego_html, height=375, scrolling=False)
+
+        d1, d2 = st.columns(2)
+        with d1:
+            st.markdown(f"**↗ 《{picked}》引用了 {len(out_e)} 部**")
+            for e in sorted(out_e, key=lambda x: -x["weight"]):
+                arts = f" · {', '.join(e['articles'][:2])}" if e["articles"] else ""
+                type_cn = {"based_on": "依据", "refer_to": "参照",
+                           "mention": "提及"}.get(e["type"], e["type"])
+                st.markdown(f"""<div class="retrieval-card" style="padding:8px 12px;">
+                    <span class="source-tag">{type_cn} ×{e['weight']}</span>
+                    <div style="margin-top:4px;font-size:0.85rem;">
+                        《{e['target']}》{arts}</div>
+                </div>""", unsafe_allow_html=True)
+            if not out_e:
+                st.caption("无对外引用")
+
+        with d2:
+            st.markdown(f"**↙ {len(in_e)} 部引用了《{picked}》**")
+            for e in sorted(in_e, key=lambda x: -x["weight"]):
+                arts = f" · {', '.join(e['articles'][:2])}" if e["articles"] else ""
+                type_cn = {"based_on": "依据", "refer_to": "参照",
+                           "mention": "提及"}.get(e["type"], e["type"])
+                st.markdown(f"""<div class="retrieval-card" style="padding:8px 12px;
+                    border-left-color:#34d399;">
+                    <span class="source-tag" style="background:#064e3b;color:#6ee7b7;">
+                        {type_cn} ×{e['weight']}</span>
+                    <div style="margin-top:4px;font-size:0.85rem;">
+                        《{e['source']}》{arts}</div>
+                </div>""", unsafe_allow_html=True)
+            if not in_e:
+                st.caption("无被引用")
+
+        # 图扩展演示
+        st.markdown("**🌐 图扩展效果**（检索命中此法规时，会额外召回）")
+        expanded = g.expand([picked], max_add=4)
+        if expanded:
+            for name, reason, w in expanded:
+                st.markdown(f"- **《{name}》** — {reason}")
+        else:
+            st.caption("无可扩展的关联法规")
 
 
 # ── 页面：评估 ────────────────────────────────────────
@@ -496,7 +708,7 @@ elif page == "📊 评估":
             if ret_eval["hit"]:
                 retrieval_pass += 1
 
-            context, _ = rag_retrieve(q, top_k=top_k)
+            context, _ = rag_retrieve(q, top_k=top_k, graph_k=graph_k)
             user_prompt = f"【参考原文】\n{context}\n\n【问题】\n{q}"
             ans_text = ""
             stream = ask_llm_stream(RAG_SYSTEM_PROMPT, user_prompt)

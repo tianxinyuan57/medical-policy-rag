@@ -22,6 +22,8 @@ CHUNK_SIZE = 500       # fallback 切分的字符数（用于无结构文档）
 CHUNK_OVERLAP = 100    # fallback 切分的重叠字符数
 TOP_K = 5              # 检索返回的最相关片段数（由 3 调优至 5，见 tuning_experiment.py）
 
+GRAPH_K = 2            # 引用图谱扩展召回的关联法规数（0 = 关闭图扩展）
+
 # --- Smart Splitter 参数（见 smart_splitter.py）---
 # 主要切分策略：按条款（第X条）/ 序号（一、二、三）结构切分
 # MERGE_THRESHOLD = 150    # 太短的条款合并阈值

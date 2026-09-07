@@ -1,0 +1,1572 @@
+{
+  "nodes": [
+    {
+      "name": "中医病历书写基本规范",
+      "value": 10,
+      "symbolSize": 34.0,
+      "category": 2,
+      "inDegree": 8
+    },
+    {
+      "name": "中医药法",
+      "value": 1,
+      "symbolSize": 14.2,
+      "category": 0,
+      "inDegree": 0
+    },
+    {
+      "name": "互联网诊疗管理办法",
+      "value": 7,
+      "symbolSize": 27.400000000000002,
+      "category": 0,
+      "inDegree": 0
+    },
+    {
+      "name": "人体器官移植条例",
+      "value": 3,
+      "symbolSize": 18.6,
+      "category": 1,
+      "inDegree": 2
+    },
+    {
+      "name": "会计法",
+      "value": 1,
+      "symbolSize": 14.2,
+      "category": 0,
+      "inDegree": 0
+    },
+    {
+      "name": "传染病防治法",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 0,
+      "inDegree": 2
+    },
+    {
+      "name": "传统医学师承和确有专长人员医师资格考核考试办法",
+      "value": 1,
+      "symbolSize": 14.2,
+      "category": 0,
+      "inDegree": 0
+    },
+    {
+      "name": "住院病案首页数据填写质量规范",
+      "value": 5,
+      "symbolSize": 23.0,
+      "category": 2,
+      "inDegree": 2
+    },
+    {
+      "name": "关于做好当前药品价格管理工作的意见",
+      "value": 3,
+      "symbolSize": 18.6,
+      "category": 3,
+      "inDegree": 2
+    },
+    {
+      "name": "关于加强医疗机构药事管理促进合理用药的意见",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 3,
+      "inDegree": 2
+    },
+    {
+      "name": "关于加强首诊和转诊服务提升医疗服务连续性",
+      "value": 14,
+      "symbolSize": 42.800000000000004,
+      "category": 3,
+      "inDegree": 0
+    },
+    {
+      "name": "关于加快推进门诊费用跨省直接结算工作的通知",
+      "value": 1,
+      "symbolSize": 14.2,
+      "category": 3,
+      "inDegree": 0
+    },
+    {
+      "name": "关于医师执业注册中执业范围的暂行规定",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 2,
+      "inDegree": 0
+    },
+    {
+      "name": "关于增加重症医学科诊疗科目的通知",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 3,
+      "inDegree": 0
+    },
+    {
+      "name": "关于建立定点医药机构人员医保支付资格管理制度的指导意见",
+      "value": 6,
+      "symbolSize": 25.200000000000003,
+      "category": 3,
+      "inDegree": 0
+    },
+    {
+      "name": "关于推进和规范医师多点执业的若干意见",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 2,
+      "inDegree": 0
+    },
+    {
+      "name": "关于进一步做好基本医疗保险跨省异地就医直接结算工作的通知",
+      "value": 3,
+      "symbolSize": 18.6,
+      "category": 3,
+      "inDegree": 2
+    },
+    {
+      "name": "关于进一步加强医疗保障定点医疗机构管理的通知",
+      "value": 7,
+      "symbolSize": 27.400000000000002,
+      "category": 3,
+      "inDegree": 0
+    },
+    {
+      "name": "关于进一步加强异地就医直接结算管理服务的通知",
+      "value": 1,
+      "symbolSize": 14.2,
+      "category": 3,
+      "inDegree": 0
+    },
+    {
+      "name": "医保药品中药饮片和医疗机构制剂统一编码规则",
+      "value": 1,
+      "symbolSize": 14.2,
+      "category": 3,
+      "inDegree": 0
+    },
+    {
+      "name": "医师定期考核管理办法",
+      "value": 6,
+      "symbolSize": 25.200000000000003,
+      "category": 0,
+      "inDegree": 1
+    },
+    {
+      "name": "医师执业注册管理办法",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 0,
+      "inDegree": 0
+    },
+    {
+      "name": "医师法",
+      "value": 19,
+      "symbolSize": 53.800000000000004,
+      "category": 0,
+      "inDegree": 19
+    },
+    {
+      "name": "医疗保障基金使用监督管理举报处理暂行办法",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 0,
+      "inDegree": 0
+    },
+    {
+      "name": "医疗保障基金使用监督管理条例",
+      "value": 12,
+      "symbolSize": 38.400000000000006,
+      "category": 1,
+      "inDegree": 11
+    },
+    {
+      "name": "医疗保障基金结算清单填写规范",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 2,
+      "inDegree": 2
+    },
+    {
+      "name": "医疗保障基金飞行检查管理暂行办法",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 0,
+      "inDegree": 0
+    },
+    {
+      "name": "医疗保障定点医药机构相关人员医保支付资格管理经办规程",
+      "value": 9,
+      "symbolSize": 31.8,
+      "category": 2,
+      "inDegree": 4
+    },
+    {
+      "name": "医疗保障按病种付费管理暂行办法",
+      "value": 4,
+      "symbolSize": 20.8,
+      "category": 0,
+      "inDegree": 2
+    },
+    {
+      "name": "医疗保障标准化工作指导意见",
+      "value": 6,
+      "symbolSize": 25.200000000000003,
+      "category": 3,
+      "inDegree": 6
+    },
+    {
+      "name": "医疗保障行政处罚程序暂行规定",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 2,
+      "inDegree": 0
+    },
+    {
+      "name": "医疗废物管理条例",
+      "value": 1,
+      "symbolSize": 14.2,
+      "category": 1,
+      "inDegree": 0
+    },
+    {
+      "name": "医疗机构医疗保障定点管理暂行办法",
+      "value": 8,
+      "symbolSize": 29.6,
+      "category": 0,
+      "inDegree": 5
+    },
+    {
+      "name": "医疗机构审批管理的若干规定",
+      "value": 4,
+      "symbolSize": 20.8,
+      "category": 2,
+      "inDegree": 0
+    },
+    {
+      "name": "医疗机构检查检验结果互认管理办法",
+      "value": 8,
+      "symbolSize": 29.6,
+      "category": 0,
+      "inDegree": 2
+    },
+    {
+      "name": "医疗机构病历管理规定",
+      "value": 14,
+      "symbolSize": 42.800000000000004,
+      "category": 2,
+      "inDegree": 7
+    },
+    {
+      "name": "医疗机构管理条例",
+      "value": 25,
+      "symbolSize": 62,
+      "category": 1,
+      "inDegree": 25
+    },
+    {
+      "name": "医疗机构药事管理规定",
+      "value": 15,
+      "symbolSize": 45.0,
+      "category": 2,
+      "inDegree": 4
+    },
+    {
+      "name": "医疗机构药品监督管理办法",
+      "value": 14,
+      "symbolSize": 42.800000000000004,
+      "category": 0,
+      "inDegree": 2
+    },
+    {
+      "name": "医疗机构麻醉药品、第一类精神药品管理规定",
+      "value": 10,
+      "symbolSize": 34.0,
+      "category": 2,
+      "inDegree": 2
+    },
+    {
+      "name": "医疗用毒性药品管理办法",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 0,
+      "inDegree": 1
+    },
+    {
+      "name": "医疗质量安全核心制度要点",
+      "value": 24,
+      "symbolSize": 62,
+      "category": 3,
+      "inDegree": 0
+    },
+    {
+      "name": "医疗质量管理办法",
+      "value": 7,
+      "symbolSize": 27.400000000000002,
+      "category": 0,
+      "inDegree": 6
+    },
+    {
+      "name": "医院中药饮片管理规范",
+      "value": 13,
+      "symbolSize": 40.6,
+      "category": 2,
+      "inDegree": 3
+    },
+    {
+      "name": "国家基本医疗保险生育保险工伤保险药品目录通知",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 3,
+      "inDegree": 0
+    },
+    {
+      "name": "基本医疗保险用药管理暂行办法",
+      "value": 5,
+      "symbolSize": 23.0,
+      "category": 0,
+      "inDegree": 4
+    },
+    {
+      "name": "基本医疗保险跨省异地就医直接结算经办规程",
+      "value": 10,
+      "symbolSize": 34.0,
+      "category": 2,
+      "inDegree": 2
+    },
+    {
+      "name": "基本医疗卫生与健康促进法",
+      "value": 6,
+      "symbolSize": 25.200000000000003,
+      "category": 0,
+      "inDegree": 6
+    },
+    {
+      "name": "处方管理办法",
+      "value": 18,
+      "symbolSize": 51.6,
+      "category": 0,
+      "inDegree": 9
+    },
+    {
+      "name": "招标投标法",
+      "value": 1,
+      "symbolSize": 14.2,
+      "category": 0,
+      "inDegree": 1
+    },
+    {
+      "name": "招标投标法实施条例",
+      "value": 1,
+      "symbolSize": 14.2,
+      "category": 1,
+      "inDegree": 0
+    },
+    {
+      "name": "按病种付费医疗保障经办管理规程",
+      "value": 4,
+      "symbolSize": 20.8,
+      "category": 2,
+      "inDegree": 2
+    },
+    {
+      "name": "按病组和病种分值付费2.0版分组方案",
+      "value": 1,
+      "symbolSize": 14.2,
+      "category": 3,
+      "inDegree": 1
+    },
+    {
+      "name": "放射性药品管理办法",
+      "value": 6,
+      "symbolSize": 25.200000000000003,
+      "category": 0,
+      "inDegree": 0
+    },
+    {
+      "name": "母婴保健法",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 0,
+      "inDegree": 1
+    },
+    {
+      "name": "电子病历应用管理规范",
+      "value": 11,
+      "symbolSize": 36.2,
+      "category": 2,
+      "inDegree": 2
+    },
+    {
+      "name": "电子签名法",
+      "value": 6,
+      "symbolSize": 25.200000000000003,
+      "category": 0,
+      "inDegree": 6
+    },
+    {
+      "name": "疫苗管理法",
+      "value": 1,
+      "symbolSize": 14.2,
+      "category": 0,
+      "inDegree": 1
+    },
+    {
+      "name": "疾病诊断相关分组DRG付费技术规范",
+      "value": 1,
+      "symbolSize": 14.2,
+      "category": 2,
+      "inDegree": 0
+    },
+    {
+      "name": "病历书写基本规范",
+      "value": 12,
+      "symbolSize": 38.400000000000006,
+      "category": 2,
+      "inDegree": 11
+    },
+    {
+      "name": "社会保险法",
+      "value": 6,
+      "symbolSize": 25.200000000000003,
+      "category": 0,
+      "inDegree": 6
+    },
+    {
+      "name": "社会保险费征缴暂行条例",
+      "value": 2,
+      "symbolSize": 16.4,
+      "category": 1,
+      "inDegree": 0
+    },
+    {
+      "name": "药品管理法",
+      "value": 70,
+      "symbolSize": 62,
+      "category": 0,
+      "inDegree": 70
+    },
+    {
+      "name": "药品管理法实施条例",
+      "value": 40,
+      "symbolSize": 62,
+      "category": 1,
+      "inDegree": 5
+    },
+    {
+      "name": "药品经营和使用质量监督管理办法",
+      "value": 9,
+      "symbolSize": 31.8,
+      "category": 0,
+      "inDegree": 0
+    },
+    {
+      "name": "行政处罚法",
+      "value": 4,
+      "symbolSize": 20.8,
+      "category": 0,
+      "inDegree": 4
+    },
+    {
+      "name": "长期处方管理规范",
+      "value": 15,
+      "symbolSize": 45.0,
+      "category": 2,
+      "inDegree": 2
+    },
+    {
+      "name": "零售药店医疗保障定点管理暂行办法",
+      "value": 7,
+      "symbolSize": 27.400000000000002,
+      "category": 0,
+      "inDegree": 3
+    },
+    {
+      "name": "麻醉药品和精神药品管理条例",
+      "value": 9,
+      "symbolSize": 31.8,
+      "category": 1,
+      "inDegree": 9
+    }
+  ],
+  "links": [
+    {
+      "source": "中医病历书写基本规范",
+      "target": "医疗机构管理条例",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "中医病历书写基本规范",
+      "target": "病历书写基本规范",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "中医药法",
+      "target": "医师法",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "互联网诊疗管理办法",
+      "target": "医师法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "互联网诊疗管理办法",
+      "target": "医疗机构管理条例",
+      "value": 4,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "互联网诊疗管理办法",
+      "target": "医疗机构病历管理规定",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "互联网诊疗管理办法",
+      "target": "处方管理办法",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "人体器官移植条例",
+      "target": "医疗机构管理条例",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "会计法",
+      "target": "行政处罚法",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "传统医学师承和确有专长人员医师资格考核考试办法",
+      "target": "医师法",
+      "value": 1,
+      "type": "based_on",
+      "articles": [
+        "第十一条"
+      ]
+    },
+    {
+      "source": "住院病案首页数据填写质量规范",
+      "target": "病历书写基本规范",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "住院病案首页数据填写质量规范",
+      "target": "关于加强医疗机构药事管理促进合理用药的意见",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "住院病案首页数据填写质量规范",
+      "target": "医疗机构检查检验结果互认管理办法",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于做好当前药品价格管理工作的意见",
+      "target": "药品管理法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "关于加强首诊和转诊服务提升医疗服务连续性",
+      "target": "医疗机构检查检验结果互认管理办法",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于加强首诊和转诊服务提升医疗服务连续性",
+      "target": "基本医疗卫生与健康促进法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "关于加强首诊和转诊服务提升医疗服务连续性",
+      "target": "医疗机构管理条例",
+      "value": 2,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "关于加强首诊和转诊服务提升医疗服务连续性",
+      "target": "医疗保障基金使用监督管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于加强首诊和转诊服务提升医疗服务连续性",
+      "target": "医疗质量管理办法",
+      "value": 2,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "关于加强首诊和转诊服务提升医疗服务连续性",
+      "target": "长期处方管理规范",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于加强首诊和转诊服务提升医疗服务连续性",
+      "target": "医师法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "关于加强首诊和转诊服务提升医疗服务连续性",
+      "target": "药品管理法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "关于加强首诊和转诊服务提升医疗服务连续性",
+      "target": "麻醉药品和精神药品管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于加强首诊和转诊服务提升医疗服务连续性",
+      "target": "处方管理办法",
+      "value": 2,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "关于加强首诊和转诊服务提升医疗服务连续性",
+      "target": "医疗机构药事管理规定",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于加快推进门诊费用跨省直接结算工作的通知",
+      "target": "医疗保障基金使用监督管理条例",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "关于医师执业注册中执业范围的暂行规定",
+      "target": "医师法",
+      "value": 2,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "关于增加重症医学科诊疗科目的通知",
+      "target": "人体器官移植条例",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "关于增加重症医学科诊疗科目的通知",
+      "target": "医疗机构管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于建立定点医药机构人员医保支付资格管理制度的指导意见",
+      "target": "医疗保障基金使用监督管理条例",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "关于建立定点医药机构人员医保支付资格管理制度的指导意见",
+      "target": "医疗机构医疗保障定点管理暂行办法",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于建立定点医药机构人员医保支付资格管理制度的指导意见",
+      "target": "零售药店医疗保障定点管理暂行办法",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于建立定点医药机构人员医保支付资格管理制度的指导意见",
+      "target": "药品管理法",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "关于建立定点医药机构人员医保支付资格管理制度的指导意见",
+      "target": "医疗保障按病种付费管理暂行办法",
+      "value": 2,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于推进和规范医师多点执业的若干意见",
+      "target": "医师法",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "关于推进和规范医师多点执业的若干意见",
+      "target": "医师定期考核管理办法",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "关于进一步做好基本医疗保险跨省异地就医直接结算工作的通知",
+      "target": "基本医疗保险跨省异地就医直接结算经办规程",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "关于进一步加强医疗保障定点医疗机构管理的通知",
+      "target": "医疗保障基金使用监督管理条例",
+      "value": 2,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "关于进一步加强医疗保障定点医疗机构管理的通知",
+      "target": "医疗机构医疗保障定点管理暂行办法",
+      "value": 2,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于进一步加强医疗保障定点医疗机构管理的通知",
+      "target": "医疗保障定点医药机构相关人员医保支付资格管理经办规程",
+      "value": 2,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于进一步加强医疗保障定点医疗机构管理的通知",
+      "target": "零售药店医疗保障定点管理暂行办法",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "关于进一步加强异地就医直接结算管理服务的通知",
+      "target": "关于进一步做好基本医疗保险跨省异地就医直接结算工作的通知",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "医保药品中药饮片和医疗机构制剂统一编码规则",
+      "target": "医疗保障标准化工作指导意见",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医师定期考核管理办法",
+      "target": "医师法",
+      "value": 4,
+      "type": "based_on",
+      "articles": [
+        "第四十二条"
+      ]
+    },
+    {
+      "source": "医师定期考核管理办法",
+      "target": "母婴保健法",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医师执业注册管理办法",
+      "target": "医师法",
+      "value": 2,
+      "type": "based_on",
+      "articles": [
+        "第四十一条"
+      ]
+    },
+    {
+      "source": "医疗保障基金使用监督管理举报处理暂行办法",
+      "target": "社会保险法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗保障基金使用监督管理举报处理暂行办法",
+      "target": "医疗保障基金使用监督管理条例",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗保障基金使用监督管理条例",
+      "target": "社会保险法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗保障基金飞行检查管理暂行办法",
+      "target": "社会保险法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗保障基金飞行检查管理暂行办法",
+      "target": "医疗保障基金使用监督管理条例",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗保障定点医药机构相关人员医保支付资格管理经办规程",
+      "target": "医疗保障基金使用监督管理条例",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗保障定点医药机构相关人员医保支付资格管理经办规程",
+      "target": "医疗机构医疗保障定点管理暂行办法",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗保障定点医药机构相关人员医保支付资格管理经办规程",
+      "target": "零售药店医疗保障定点管理暂行办法",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗保障定点医药机构相关人员医保支付资格管理经办规程",
+      "target": "按病种付费医疗保障经办管理规程",
+      "value": 2,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗保障按病种付费管理暂行办法",
+      "target": "人体器官移植条例",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗保障按病种付费管理暂行办法",
+      "target": "医疗机构管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗保障行政处罚程序暂行规定",
+      "target": "行政处罚法",
+      "value": 2,
+      "type": "based_on",
+      "articles": [
+        "第五十一条"
+      ]
+    },
+    {
+      "source": "医疗废物管理条例",
+      "target": "传染病防治法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗机构医疗保障定点管理暂行办法",
+      "target": "社会保险法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗机构医疗保障定点管理暂行办法",
+      "target": "基本医疗卫生与健康促进法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗机构医疗保障定点管理暂行办法",
+      "target": "医疗机构管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗机构审批管理的若干规定",
+      "target": "医疗机构管理条例",
+      "value": 4,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "医疗机构检查检验结果互认管理办法",
+      "target": "基本医疗卫生与健康促进法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗机构检查检验结果互认管理办法",
+      "target": "医疗机构管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗机构检查检验结果互认管理办法",
+      "target": "医疗保障基金使用监督管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗机构检查检验结果互认管理办法",
+      "target": "医疗质量管理办法",
+      "value": 2,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗机构检查检验结果互认管理办法",
+      "target": "长期处方管理规范",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗机构病历管理规定",
+      "target": "病历书写基本规范",
+      "value": 3,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "医疗机构病历管理规定",
+      "target": "中医病历书写基本规范",
+      "value": 3,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "医疗机构病历管理规定",
+      "target": "电子病历应用管理规范",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗机构药事管理规定",
+      "target": "药品管理法",
+      "value": 4,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗机构药事管理规定",
+      "target": "医疗机构管理条例",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗机构药事管理规定",
+      "target": "麻醉药品和精神药品管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗机构药事管理规定",
+      "target": "处方管理办法",
+      "value": 2,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗机构药事管理规定",
+      "target": "医院中药饮片管理规范",
+      "value": 3,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "医疗机构药品监督管理办法",
+      "target": "药品管理法",
+      "value": 7,
+      "type": "based_on",
+      "articles": [
+        "第八十条"
+      ]
+    },
+    {
+      "source": "医疗机构药品监督管理办法",
+      "target": "药品管理法实施条例",
+      "value": 3,
+      "type": "refer_to",
+      "articles": [
+        "第七十九条"
+      ]
+    },
+    {
+      "source": "医疗机构药品监督管理办法",
+      "target": "医疗机构药事管理规定",
+      "value": 2,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗机构麻醉药品、第一类精神药品管理规定",
+      "target": "麻醉药品和精神药品管理条例",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗机构麻醉药品、第一类精神药品管理规定",
+      "target": "医疗保障标准化工作指导意见",
+      "value": 3,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗机构麻醉药品、第一类精神药品管理规定",
+      "target": "医疗保障基金使用监督管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗机构麻醉药品、第一类精神药品管理规定",
+      "target": "医疗机构医疗保障定点管理暂行办法",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗机构麻醉药品、第一类精神药品管理规定",
+      "target": "医疗保障定点医药机构相关人员医保支付资格管理经办规程",
+      "value": 2,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗用毒性药品管理办法",
+      "target": "药品管理法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗质量安全核心制度要点",
+      "target": "医疗质量管理办法",
+      "value": 2,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗质量安全核心制度要点",
+      "target": "医疗机构病历管理规定",
+      "value": 5,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗质量安全核心制度要点",
+      "target": "病历书写基本规范",
+      "value": 5,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗质量安全核心制度要点",
+      "target": "中医病历书写基本规范",
+      "value": 4,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "医疗质量安全核心制度要点",
+      "target": "电子病历应用管理规范",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗质量安全核心制度要点",
+      "target": "医师法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医疗质量安全核心制度要点",
+      "target": "电子签名法",
+      "value": 3,
+      "type": "based_on",
+      "articles": [
+        "第十三条"
+      ]
+    },
+    {
+      "source": "医疗质量安全核心制度要点",
+      "target": "医疗机构管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗质量安全核心制度要点",
+      "target": "住院病案首页数据填写质量规范",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗质量安全核心制度要点",
+      "target": "关于加强医疗机构药事管理促进合理用药的意见",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医疗质量管理办法",
+      "target": "医师法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医院中药饮片管理规范",
+      "target": "药品管理法",
+      "value": 2,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医院中药饮片管理规范",
+      "target": "麻醉药品和精神药品管理条例",
+      "value": 2,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "医院中药饮片管理规范",
+      "target": "医疗用毒性药品管理办法",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "医院中药饮片管理规范",
+      "target": "处方管理办法",
+      "value": 2,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "医院中药饮片管理规范",
+      "target": "医疗机构管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "医院中药饮片管理规范",
+      "target": "医疗机构麻醉药品、第一类精神药品管理规定",
+      "value": 2,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "国家基本医疗保险生育保险工伤保险药品目录通知",
+      "target": "基本医疗保险用药管理暂行办法",
+      "value": 2,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "基本医疗保险用药管理暂行办法",
+      "target": "社会保险法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "基本医疗保险跨省异地就医直接结算经办规程",
+      "target": "关于进一步做好基本医疗保险跨省异地就医直接结算工作的通知",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "基本医疗保险跨省异地就医直接结算经办规程",
+      "target": "医疗保障基金使用监督管理条例",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "基本医疗保险跨省异地就医直接结算经办规程",
+      "target": "医疗保障基金结算清单填写规范",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "基本医疗保险跨省异地就医直接结算经办规程",
+      "target": "医疗保障标准化工作指导意见",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "基本医疗保险跨省异地就医直接结算经办规程",
+      "target": "医疗机构药品监督管理办法",
+      "value": 2,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "基本医疗保险跨省异地就医直接结算经办规程",
+      "target": "药品管理法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "基本医疗保险跨省异地就医直接结算经办规程",
+      "target": "药品管理法实施条例",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "处方管理办法",
+      "target": "医师法",
+      "value": 2,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "处方管理办法",
+      "target": "药品管理法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "处方管理办法",
+      "target": "医疗机构管理条例",
+      "value": 3,
+      "type": "based_on",
+      "articles": [
+        "第四十八条"
+      ]
+    },
+    {
+      "source": "处方管理办法",
+      "target": "麻醉药品和精神药品管理条例",
+      "value": 3,
+      "type": "refer_to",
+      "articles": [
+        "第七十二条",
+        "第七十三条"
+      ]
+    },
+    {
+      "source": "招标投标法实施条例",
+      "target": "招标投标法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "按病种付费医疗保障经办管理规程",
+      "target": "按病组和病种分值付费2.0版分组方案",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "按病种付费医疗保障经办管理规程",
+      "target": "医疗保障基金结算清单填写规范",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "放射性药品管理办法",
+      "target": "药品管理法",
+      "value": 6,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "母婴保健法",
+      "target": "传染病防治法",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "电子病历应用管理规范",
+      "target": "医师法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "电子病历应用管理规范",
+      "target": "电子签名法",
+      "value": 3,
+      "type": "based_on",
+      "articles": [
+        "第十三条"
+      ]
+    },
+    {
+      "source": "电子病历应用管理规范",
+      "target": "医疗机构管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "电子病历应用管理规范",
+      "target": "医疗机构病历管理规定",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "电子病历应用管理规范",
+      "target": "病历书写基本规范",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "电子病历应用管理规范",
+      "target": "中医病历书写基本规范",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "电子病历应用管理规范",
+      "target": "住院病案首页数据填写质量规范",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "疾病诊断相关分组DRG付费技术规范",
+      "target": "医疗保障标准化工作指导意见",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "病历书写基本规范",
+      "target": "医疗机构管理条例",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "社会保险费征缴暂行条例",
+      "target": "基本医疗卫生与健康促进法",
+      "value": 2,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "药品管理法实施条例",
+      "target": "药品管理法",
+      "value": 35,
+      "type": "based_on",
+      "articles": [
+        "第八条",
+        "第十三条",
+        "第二十九条",
+        "第四十一条",
+        "第五十四条",
+        "第七十九条",
+        "第七十三条",
+        "第八十条",
+        "第七十四条",
+        "第七十五条",
+        "第八十六条",
+        "第九十二条",
+        "第五十九条"
+      ]
+    },
+    {
+      "source": "药品经营和使用质量监督管理办法",
+      "target": "药品管理法",
+      "value": 6,
+      "type": "based_on",
+      "articles": [
+        "第一百一十五条",
+        "第一百二十六条"
+      ]
+    },
+    {
+      "source": "药品经营和使用质量监督管理办法",
+      "target": "疫苗管理法",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "药品经营和使用质量监督管理办法",
+      "target": "药品管理法实施条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "药品经营和使用质量监督管理办法",
+      "target": "行政处罚法",
+      "value": 1,
+      "type": "based_on",
+      "articles": [
+        "第三十二条"
+      ]
+    },
+    {
+      "source": "长期处方管理规范",
+      "target": "医师法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "长期处方管理规范",
+      "target": "药品管理法",
+      "value": 2,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "长期处方管理规范",
+      "target": "医疗机构管理条例",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "长期处方管理规范",
+      "target": "麻醉药品和精神药品管理条例",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "长期处方管理规范",
+      "target": "处方管理办法",
+      "value": 2,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "长期处方管理规范",
+      "target": "医疗机构药事管理规定",
+      "value": 1,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "长期处方管理规范",
+      "target": "基本医疗保险用药管理暂行办法",
+      "value": 2,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "长期处方管理规范",
+      "target": "关于做好当前药品价格管理工作的意见",
+      "value": 2,
+      "type": "mention",
+      "articles": []
+    },
+    {
+      "source": "长期处方管理规范",
+      "target": "基本医疗保险跨省异地就医直接结算经办规程",
+      "value": 1,
+      "type": "refer_to",
+      "articles": []
+    },
+    {
+      "source": "零售药店医疗保障定点管理暂行办法",
+      "target": "社会保险法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "零售药店医疗保障定点管理暂行办法",
+      "target": "基本医疗卫生与健康促进法",
+      "value": 1,
+      "type": "based_on",
+      "articles": []
+    },
+    {
+      "source": "零售药店医疗保障定点管理暂行办法",
+      "target": "药品管理法",
+      "value": 2,
+      "type": "refer_to",
+      "articles": []
+    }
+  ],
+  "categories": [
+    {
+      "name": "法律"
+    },
+    {
+      "name": "行政法规"
+    },
+    {
+      "name": "部门规章"
+    },
+    {
+      "name": "规范性文件"
+    }
+  ]
+}

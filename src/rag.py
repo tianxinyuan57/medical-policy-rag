@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
-from config import CHROMA_DIR, EMBED_MODEL, TOP_K
+from config import CHROMA_DIR, EMBED_MODEL, TOP_K, GRAPH_K
 from llm import ask_llm
 from hybrid_retriever import get_retriever
 
@@ -133,14 +133,22 @@ def answer(question: str, verbose: bool = False) -> str:
     # 我们设 K=5，因为跨文件对比类问题需要更大覆盖度（见 tuning_experiment.py）
 
     retriever = get_retriever(vectorstore)
-    results = retriever.retrieve(question, top_k=TOP_K)
+    results, graph_notes = retriever.retrieve_with_graph(
+        question, top_k=TOP_K, graph_k=GRAPH_K
+    )
 
     if verbose:
         print(f"\n🔍 检索到 {len(results)} 个相关片段：")
         for i, doc in enumerate(results):
             source = os.path.basename(doc.metadata.get("source", "未知"))
-            print(f"   [{i+1}] 来源: {source}")
+            tag = " 🕸️[图扩展]" if doc.metadata.get("graph_expanded") else ""
+            print(f"   [{i+1}] 来源: {source}{tag}")
             print(f"       前80字: {doc.page_content[:80]}...")
+            print()
+        if graph_notes:
+            print(f"   🕸️ 引用图谱补充了 {len(graph_notes)} 部关联法规：")
+            for n in graph_notes:
+                print(f"      · 《{n['law']}》 — {n['reason']}")
             print()
 
     # ---- 第 ⑦ 步：拼接 Prompt（Augment） ----
@@ -159,9 +167,12 @@ def answer(question: str, verbose: bool = False) -> str:
         source = os.path.basename(doc.metadata.get("source", "未知"))
         # 去掉文件后缀，显示更干净
         source_name = source.replace(".txt", "").replace(".pdf", "")
-        context_blocks.append(
-            f"[片段{i+1}｜来源：《{source_name}》]\n{doc.page_content}"
-        )
+        # 图扩展来的片段单独标注，提示模型这是通过引用关系关联到的
+        if doc.metadata.get("graph_expanded"):
+            tag = f"[片段{i+1}｜来源：《{source_name}》｜关联法规]"
+        else:
+            tag = f"[片段{i+1}｜来源：《{source_name}》]"
+        context_blocks.append(f"{tag}\n{doc.page_content}")
     context = "\n\n".join(context_blocks)
 
     # 拼成最终的 user prompt
