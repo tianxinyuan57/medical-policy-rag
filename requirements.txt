@@ -15,5 +15,9 @@ numpy==1.26.4
 pypdf
 python-dotenv==1.2.3
 
+# 混合检索（BM25 关键词路）
+rank-bm25==0.2.2
+jieba==0.42.1
+
 # Web 界面（可选）
 streamlit

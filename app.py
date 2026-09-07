@@ -225,6 +225,14 @@ def load_rag_components():
     return vs, embeddings
 
 
+@st.cache_resource(show_spinner="正在构建 BM25 索引...")
+def load_retriever():
+    """加载混合检索器（BM25 + 向量 + RRF 融合）。"""
+    from hybrid_retriever import HybridRetriever
+    vs, _ = load_rag_components()
+    return HybridRetriever(vs)
+
+
 @st.cache_resource
 def load_llm_client():
     from openai import OpenAI
@@ -268,9 +276,9 @@ RAG_SYSTEM_PROMPT = """你是一位资深医疗政策顾问，既熟悉法律条
 
 
 def rag_retrieve(question: str, top_k: int = 5):
-    """检索相关片段，返回 (context_str, retrieval_info)。"""
-    vs, _ = load_rag_components()
-    results = vs.similarity_search(question, k=top_k)
+    """混合检索相关片段，返回 (context_str, retrieval_info)。"""
+    retriever = load_retriever()
+    results = retriever.retrieve(question, top_k=top_k)
 
     context_blocks = []
     retrieval_info = []
@@ -632,11 +640,12 @@ elif page == "📚 知识库":
 
     # 语义搜索
     st.divider()
-    st.markdown("#### 🔍 语义搜索测试")
-    search_q = st.text_input("测试检索效果（不经过 LLM）", placeholder="例如：献血年龄限制")
+    st.markdown("#### 🔍 混合检索测试")
+    st.caption("BM25 关键词检索 + 向量语义检索，RRF 融合排序（不经过 LLM）")
+    search_q = st.text_input("输入查询", placeholder="例如：飞行检查的启动情形")
     if search_q:
-        vs, _ = load_rag_components()
-        results = vs.similarity_search(search_q, k=top_k)
+        retriever = load_retriever()
+        results = retriever.retrieve(search_q, top_k=top_k)
         for i, doc in enumerate(results):
             src = os.path.basename(doc.metadata.get("source", "")).replace(".txt", "")
             label = doc.metadata.get("article_label", "")
@@ -662,6 +671,7 @@ elif page == "⚙️ 系统":
         ("Embedding", EMBED_MODEL, "本地中文模型，512 维"),
         ("向量库", "Chroma 0.5.x", "轻量持久化，支持增量更新"),
         ("切分", "ArticleAwareSplitter", "按条款结构切分，非固定字数"),
+        ("检索", "Hybrid (BM25 + Vector + RRF)", "关键词+语义双路召回，倒数排名融合"),
         ("框架", "LangChain + Streamlit", "检索框架 + Web 界面"),
     ]
 
@@ -682,13 +692,43 @@ elif page == "⚙️ 系统":
 └──────────────────────────────────────────────┘
                         ↕
 ┌──────────────────────────────────────────────┐
-│  在线问答                                      │
-│  用户问题 → 向量化 → 检索 Top-K 片段            │
-│           → 拼入 Prompt + 反幻觉约束            │
-│           → DeepSeek API 流式生成               │
-│           → 带法条引用的结构化回答               │
+│  在线问答（混合检索）                            │
+│  用户问题                                      │
+│    ├─→ BM25 关键词检索 ──→ Top-20              │
+│    └─→ 向量语义检索   ──→ Top-20              │
+│         ↓                                      │
+│      RRF 倒数排名融合 ──→ Top-K                │
+│         ↓                                      │
+│    拼入 Prompt + 反幻觉约束                     │
+│    → DeepSeek API 流式生成                     │
+│    → 带法条引用的结构化回答                      │
 └──────────────────────────────────────────────┘
 """, language=None)
+
+    st.divider()
+    st.markdown("#### 检索策略对比实验")
+    st.caption("20 题测试集，4 种策略的量化对比")
+
+    exp_path = os.path.join(PROJECT_ROOT, "tests", "retrieval_experiment.json")
+    if os.path.exists(exp_path):
+        with open(exp_path, encoding="utf-8") as f:
+            exp = json.load(f)
+
+        import pandas as pd
+        rows = []
+        for name, s in exp["summary"].items():
+            rows.append({
+                "策略": name,
+                "Hit@5": f"{s['hit_rate']:.0%}",
+                "MRR": f"{s['mrr']:.3f}",
+                "P@5": f"{s['precision']:.3f}",
+                "延迟": f"{s['avg_latency']*1000:.0f}ms",
+            })
+        st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+        st.caption("结论：RRF 混合检索为最优解。Cross-Encoder 重排在本场景下负收益"
+                   "（指标略降，延迟涨 300 倍），故默认关闭。")
+    else:
+        st.caption("运行 `python src/retrieval_experiment.py` 生成对比数据")
 
     st.divider()
     st.markdown("#### 参数")

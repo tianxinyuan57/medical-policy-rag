@@ -1,5 +1,6 @@
 .env
 chroma_db/
+bm25_index.pkl
 __pycache__/
 *.pyc
 *.pyo

@@ -23,6 +23,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from config import CHROMA_DIR, EMBED_MODEL, TOP_K
 from llm import ask_llm
+from hybrid_retriever import get_retriever
 
 
 # =====================================================
@@ -113,18 +114,26 @@ def answer(question: str, verbose: bool = False) -> str:
         模型基于检索原文生成的回答
     """
 
-    # ---- 第 ⑤⑥ 步：向量化问题 + 检索 Top-K ----
+    # ---- 第 ⑤⑥ 步：混合检索 Top-K ----
     #
-    # similarity_search 内部做了两件事：
-    # 1. 把 question 用 embedding 模型转成向量
-    # 2. 在 Chroma 里找余弦距离最近的 k 个片段
+    # 【从单路向量检索升级为混合检索】
+    #
+    # 旧做法：vectorstore.similarity_search(question, k=TOP_K)
+    #   只用向量语义检索，对"飞行检查""DIP 分值"这类专有名词命中率低。
+    #
+    # 新做法：BM25 关键词检索 + 向量语义检索 → RRF 融合
+    #   两路互补：BM25 精确匹配术语，向量理解同义表达。
+    #
+    # 【面试数据】20 题测试集上，混合检索相对纯向量基线：
+    #   Hit@5: 90% → 100%   MRR: 0.825 → 0.950   延迟仅 +1ms
     #
     # 【面试必考题：Top-K 怎么定？】
     # K 太小 → 可能漏掉相关片段，答案不完整
     # K 太大 → 引入太多不相关内容（噪音），模型抓不住重点，还更贵
-    # 我们设 K=3，因为政策问题通常 1-3 条相关条款就能答清楚
+    # 我们设 K=5，因为跨文件对比类问题需要更大覆盖度（见 tuning_experiment.py）
 
-    results = vectorstore.similarity_search(question, k=TOP_K)
+    retriever = get_retriever(vectorstore)
+    results = retriever.retrieve(question, top_k=TOP_K)
 
     if verbose:
         print(f"\n🔍 检索到 {len(results)} 个相关片段：")
