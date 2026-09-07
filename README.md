@@ -1,5 +1,11 @@
 # 🏥 医疗政策 RAG 问答系统
 
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![LangChain](https://img.shields.io/badge/LangChain-0.3-1C3C3C)
+![Chroma](https://img.shields.io/badge/Chroma-0.5-FF6B6B)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?logo=streamlit&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+
 基于 **RAG（检索增强生成）** 架构的医疗政策智能问答系统。输入自然语言问题，从 94 部公开医疗法规及政策文件中检索相关条款，生成带引用溯源的准确回答。采用**条款感知智能切分**（按"第X条"/"一、二、三"结构切分），而非固定字数切分，语义边界精准对齐法律文档结构。
 
 > ⚠️ 本项目**仅使用公开发布的法律法规文本**，不包含任何内部或非公开材料。
@@ -100,9 +106,10 @@ pip install -r requirements.txt
 ### 2. 配置 API Key
 
 ```bash
-# 在项目根目录创建 .env 文件
-echo "DEEPSEEK_API_KEY=你的key" > .env
+cp .env.example .env
 ```
+
+然后编辑 `.env`，填入你的 [DeepSeek API Key](https://platform.deepseek.com)。
 
 ### 3. 构建知识库
 
@@ -127,10 +134,32 @@ python src/rag.py --verbose
 python src/rag.py --test
 ```
 
-### 5. 运行评估
+### 5. 启动 Web 界面
 
 ```bash
+streamlit run app.py
+```
+
+包含 5 个页面：对话问答（流式输出）、引用图谱（交互式力导向图）、
+评估面板、知识库浏览、系统信息。
+
+### 6. 运行评估与实验
+
+```bash
+# 10 道题的端到端评估
 python src/evaluate.py
+
+# 20 题检索策略对比实验（向量 vs BM25 vs 混合 vs 重排）
+python src/retrieval_experiment.py
+
+# 引用图谱统计
+python src/citation_graph.py --stats
+
+# 查看某部法规的引用关系
+python src/citation_graph.py --node 药品管理法
+
+# 导出图谱可视化 HTML
+python src/graph_viz.py
 ```
 
 ## 📊 评估结果
