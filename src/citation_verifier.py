@@ -86,6 +86,7 @@ class Citation:
     article: str                # 条款号，如「第六十七条」
     verified: bool = False      # 是否在检索片段中核实到
     matched_source: str = ""    # 核实到的片段来源
+    matched_text: str = ""      # 该条款的原文（供前端展开查看）
     note: str = ""              # 未核实时的说明
     is_abbrev: bool = False     # 是否用简称引用（如《条例》），置信度较低
 
@@ -159,6 +160,60 @@ def _article_in_chunk(article: str, chunk_text: str) -> bool:
             continue
         return True   # 找到一处非转引的出现
     return False
+
+
+def _extract_article_text(article: str, chunk_text: str,
+                          max_len: int = 700) -> str:
+    """从片段中切出指定条款的原文。
+
+    片段可能含多个条款（短条款被合并过），要精确定位到目标条款，
+    截止到下一个条款开始处。
+
+    Args:
+        article: 目标条款，如「第六十七条」
+        chunk_text: 片段全文
+        max_len: 截断长度，避免超长条款撑爆界面
+    """
+    # 定位目标条款（跳过转引）
+    start = -1
+    for m in re.finditer(re.escape(article), chunk_text):
+        before = chunk_text[max(0, m.start() - 4):m.start()]
+        if re.sub(r'[的之\s]', '', before).endswith('》'):
+            continue
+        start = m.start()
+        break
+
+    if start < 0:
+        return ""
+
+    # 找下一个条款的起始位置作为结束点
+    rest = chunk_text[start + len(article):]
+    nxt = re.search(r'第[一二三四五六七八九十百千零\d]+条', rest)
+    if nxt:
+        # 同样要跳过转引的条款号
+        offset = 0
+        while nxt:
+            abs_pos = start + len(article) + offset + nxt.start()
+            before = chunk_text[max(0, abs_pos - 4):abs_pos]
+            if not re.sub(r'[的之\s]', '', before).endswith('》'):
+                end = abs_pos
+                break
+            offset += nxt.end()
+            nxt = re.search(r'第[一二三四五六七八九十百千零\d]+条', rest[offset:])
+        else:
+            end = len(chunk_text)
+        if nxt is None:
+            end = len(chunk_text)
+    else:
+        end = len(chunk_text)
+
+    text = chunk_text[start:end].strip()
+    # 去掉 chunk 头部的 [《法名》第X条] 标注残留
+    text = re.sub(r'^\[《[^》]+》[^\]]*\]\s*', '', text)
+
+    if len(text) > max_len:
+        text = text[:max_len].rstrip() + "……"
+    return text
 
 
 def _chunk_belongs_to_law(chunk_meta: dict, chunk_text: str,
@@ -257,6 +312,7 @@ def verify(answer: str, retrieved_docs: list) -> VerifyResult:
                 cit.verified = True
                 src = os.path.basename(meta.get("source", ""))
                 cit.matched_source = src.replace(".txt", "").replace(".pdf", "")
+                cit.matched_text = _extract_article_text(article, text)
                 break
 
         if not cit.verified:

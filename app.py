@@ -206,7 +206,7 @@ st.markdown("""
 /* ── 隐藏默认页脚 ── */
 footer {visibility: hidden;}
 </style>
-""", unsafe_allow_html=True)
+""")
 
 
 # ── 缓存加载 ──────────────────────────────────────────
@@ -289,6 +289,10 @@ def rag_retrieve(question: str, top_k: int = 5, graph_k: int = 2):
     # 术语归一化改写（口语 → 法规术语）
     rw = retriever.rewrite_query(question)
 
+    # 检索置信度评估（让系统知道「自己不知道」）
+    from confidence import assess
+    conf = assess(retriever, question, rw["rewritten"])
+
     results, graph_notes = retriever.retrieve_with_graph(
         question, top_k=top_k, graph_k=graph_k
     )
@@ -314,12 +318,75 @@ def rag_retrieve(question: str, top_k: int = 5, graph_k: int = 2):
         })
 
     context = "\n\n".join(context_blocks)
-    extras = {"rewrite": rw, "docs": results}
+    extras = {"rewrite": rw, "docs": results, "confidence": conf}
     return context, retrieval_info, extras
 
 
+def st_html(html: str):
+    """渲染 HTML 片段。
+
+    统一去掉每行的行首缩进 —— Markdown 会把 4 空格缩进的行当成代码块，
+    导致 HTML 被转义成字面文本显示（踩过这个坑）。
+    """
+    st.markdown(
+        "\n".join(line.lstrip() for line in html.split("\n")),
+        unsafe_allow_html=True,
+    )
+
+
+def _citation_rows_html(citations: list) -> str:
+    """把引用列表渲染成 HTML；已核实的做成可点击展开原文的 <details>。"""
+    import html as _html
+    rows = ""
+    for c in citations:
+        # 兼容 dataclass 和 dict 两种来源（实时 vs 历史消息）
+        get = (lambda k: getattr(c, k, "")) if not isinstance(c, dict) else c.get
+        verified = get("verified")
+        law, article = get("law"), get("article")
+        text = get("matched_text") or ""
+        note = get("note") or ""
+        is_abbrev = get("is_abbrev")
+
+        if verified:
+            mark, color = "✅", "#10b981"
+            tail = ('<span style="opacity:.55;font-size:.72rem;">（简称引用）</span>'
+                    if is_abbrev else "")
+            if text:
+                # 注意：整段 HTML 必须无行首缩进 ——
+                # Markdown 会把 4 空格缩进当成代码块，导致 HTML 被转义显示
+                body = _html.escape(text).replace("\n", "<br>")
+                sm_style = ("cursor:pointer;font-size:.8rem;list-style:none;"
+                            "display:flex;align-items:center;gap:6px;")
+                bd_style = ("margin:6px 0 10px 22px;padding:9px 13px;"
+                            "background:rgba(148,163,184,.10);"
+                            f"border-left:2px solid {color};"
+                            "border-radius:0 6px 6px 0;font-size:.78rem;"
+                            "line-height:1.75;color:#94a3b8;")
+                rows += (
+                    f'<details style="margin:4px 0;">'
+                    f'<summary style="{sm_style}">'
+                    f'<span style="color:{color};">{mark}</span>'
+                    f'<span style="border-bottom:1px dashed rgba(148,163,184,.55);">'
+                    f'《{law}》{article}</span>{tail}'
+                    f'<span style="opacity:.45;font-size:.7rem;">▸ 原文</span>'
+                    f'</summary>'
+                    f'<div style="{bd_style}">{body}</div>'
+                    f'</details>'
+                )
+            else:
+                rows += (f'<div style="margin:4px 0;font-size:.8rem;">'
+                         f'<span style="color:{color};">{mark}</span> '
+                         f'《{law}》{article} {tail}</div>')
+        else:
+            rows += (f'<div style="margin:4px 0;font-size:.8rem;">'
+                     f'<span style="color:#ef4444;">❌</span> 《{law}》{article}'
+                     f' <span style="opacity:.7;font-size:.72rem;">'
+                     f'— {note}</span></div>')
+    return rows
+
+
 def render_citation_check(result):
-    """渲染引用校验结果。"""
+    """渲染引用校验结果（已核实的引用可点击展开原文）。"""
     if result.total == 0:
         return
 
@@ -328,25 +395,32 @@ def render_citation_check(result):
     border = "#10b981" if ok else "#f59e0b"
     icon = "🛡️" if ok else "⚠️"
 
-    rows = ""
-    for c in result.citations:
-        if c.verified:
-            mark, color = "✅", "#10b981"
-            extra = (' <span style="opacity:.6;font-size:.72rem;">（简称引用）</span>'
-                     if c.is_abbrev else "")
-        else:
-            mark, color = "❌", "#ef4444"
-            extra = f' <span style="opacity:.7;font-size:.72rem;">— {c.note}</span>'
-        rows += (f'<div style="margin:3px 0;font-size:.8rem;">'
-                 f'<span style="color:{color};">{mark}</span> '
-                 f'《{c.law}》{c.article}{extra}</div>')
-
-    st.markdown(f"""<div style="background:{bg};border-left:3px solid {border};
+    st_html(f"""<div style="background:{bg};border-left:3px solid {border};
         border-radius:0 8px 8px 0;padding:10px 14px;margin:8px 0;">
         <div style="font-size:.85rem;font-weight:600;margin-bottom:6px;">
-            {icon} 引用校验 · {result.summary()}</div>
-        {rows}
-    </div>""", unsafe_allow_html=True)
+            {icon} 引用校验 · {result.summary()}
+            <span style="font-weight:400;opacity:.55;font-size:.72rem;">
+                （点击条款查看原文）</span></div>
+        {_citation_rows_html(result.citations)}
+    </div>""")
+
+
+def render_confidence(conf):
+    """渲染检索置信度预警（high 档不打扰用户）。"""
+    if not conf.should_warn:
+        return
+    if conf.is_low:
+        bg, bd, fg, icon = ("rgba(239,68,68,.10)", "#ef4444", "#fca5a5", "🚨")
+    else:
+        bg, bd, fg, icon = ("rgba(245,158,11,.10)", "#f59e0b", "#fcd34d", "⚠️")
+
+    st_html(f"""<div style="background:{bg};border-left:3px solid {bd};
+        border-radius:0 8px 8px 0;padding:9px 14px;margin:6px 0;">
+        <div style="font-size:.82rem;color:{fg};font-weight:600;">
+            {icon} {conf.user_message()}</div>
+        <div style="font-size:.7rem;opacity:.6;margin-top:4px;">
+            检索置信度 {conf.score:.0%} · {conf.reason}</div>
+    </div>""")
 
 
 def render_rewrite_info(rw: dict):
@@ -360,11 +434,11 @@ def render_rewrite_info(rw: dict):
         pairs += f" · LLM补充：{rw['llm_terms']}"
     if not pairs:
         return
-    st.markdown(f"""<div style="background:rgba(99,102,241,.10);
+    st_html(f"""<div style="background:rgba(99,102,241,.10);
         border-left:3px solid #6366f1;border-radius:0 8px 8px 0;
         padding:8px 13px;margin:6px 0;font-size:.78rem;color:#818cf8;">
         🔤 <b>术语归一化</b> &nbsp; {pairs}
-    </div>""", unsafe_allow_html=True)
+    </div>""")
 
 
 def render_retrieval_cards(items: list[dict]):
@@ -395,7 +469,7 @@ def render_retrieval_cards(items: list[dict]):
         content = item["content"]
         preview = content[:300] + ("..." if len(content) > 300 else "")
 
-        st.markdown(f"""<div class="retrieval-card"
+        st_html(f"""<div class="retrieval-card"
             style="border-left-color:{border};">
             {badge}<span class="source-tag"
                 style="background:{tag_bg};color:{tag_fg};">
@@ -403,7 +477,7 @@ def render_retrieval_cards(items: list[dict]):
             <div style="margin-top:6px;color:#475569;line-height:1.6;">
                 {preview}</div>
             {reason_html}
-        </div>""", unsafe_allow_html=True)
+        </div>""")
 
 
 # ── 侧边栏 ───────────────────────────────────────────
@@ -465,7 +539,7 @@ if page == "💬 对话":
             <h1>🏥 医疗政策智能问答</h1>
             <p>基于 94 部公开法规及政策文件 · 条款级检索 · 引用可溯源</p>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
         st.markdown("##### 💡 试试这些问题")
 
@@ -493,9 +567,27 @@ if page == "💬 对话":
                 if msg["role"] == "assistant" and msg.get("rewrite"):
                     render_rewrite_info(msg["rewrite"])
 
+                # 置信度预警
+                if msg["role"] == "assistant" and msg.get("confidence"):
+                    cf = msg["confidence"]
+                    if cf["level"] != "high":
+                        low = cf["level"] == "low"
+                        bg, bd, fg, ic = (
+                            ("rgba(239,68,68,.10)", "#ef4444", "#fca5a5", "🚨")
+                            if low else
+                            ("rgba(245,158,11,.10)", "#f59e0b", "#fcd34d", "⚠️"))
+                        st_html(f"""<div style="background:{bg};
+                            border-left:3px solid {bd};border-radius:0 8px 8px 0;
+                            padding:9px 14px;margin:6px 0;">
+                            <div style="font-size:.82rem;color:{fg};
+                                 font-weight:600;">{ic} {cf['message']}</div>
+                            <div style="font-size:.7rem;opacity:.6;margin-top:4px;">
+                                检索置信度 {cf['score']:.0%} · {cf['reason']}</div>
+                        </div>""")
+
                 st.markdown(msg["content"])
 
-                # 引用校验结果
+                # 引用校验结果（可展开原文）
                 if msg["role"] == "assistant" and msg.get("verify"):
                     v = msg["verify"]
                     if v["total"]:
@@ -503,26 +595,16 @@ if page == "💬 对话":
                         bg = ("rgba(16,185,129,.10)" if ok
                               else "rgba(245,158,11,.12)")
                         bd = "#10b981" if ok else "#f59e0b"
-                        rows = ""
-                        for c in v["citations"]:
-                            mk = "✅" if c["verified"] else "❌"
-                            cl = "#10b981" if c["verified"] else "#ef4444"
-                            ex = ""
-                            if c["verified"] and c.get("is_abbrev"):
-                                ex = ' <span style="opacity:.6;font-size:.72rem;">（简称引用）</span>'
-                            elif not c["verified"]:
-                                ex = f' <span style="opacity:.7;font-size:.72rem;">— {c["note"]}</span>'
-                            rows += (f'<div style="margin:3px 0;font-size:.8rem;">'
-                                     f'<span style="color:{cl};">{mk}</span> '
-                                     f'《{c["law"]}》{c["article"]}{ex}</div>')
-                        st.markdown(f"""<div style="background:{bg};
+                        st_html(f"""<div style="background:{bg};
                             border-left:3px solid {bd};border-radius:0 8px 8px 0;
                             padding:10px 14px;margin:8px 0;">
                             <div style="font-size:.85rem;font-weight:600;
                                  margin-bottom:6px;">
-                                {'🛡️' if ok else '⚠️'} 引用校验 · {v['summary']}</div>
-                            {rows}
-                        </div>""", unsafe_allow_html=True)
+                                {'🛡️' if ok else '⚠️'} 引用校验 · {v['summary']}
+                                <span style="font-weight:400;opacity:.55;
+                                    font-size:.72rem;">（点击条款查看原文）</span></div>
+                            {_citation_rows_html(v["citations"])}
+                        </div>""")
 
                 # 助手消息的元信息
                 if msg["role"] == "assistant" and "elapsed" in msg:
@@ -560,6 +642,9 @@ if page == "💬 对话":
             # 术语改写提示
             render_rewrite_info(extras["rewrite"])
 
+            # 检索置信度预警（在生成前提示，让用户有心理预期）
+            render_confidence(extras["confidence"])
+
             # 流式生成
             stream = ask_llm_stream(RAG_SYSTEM_PROMPT, user_prompt)
             full_answer = st.write_stream(
@@ -586,6 +671,12 @@ if page == "💬 对话":
             "elapsed": elapsed,
             "top_k": top_k,
             "rewrite": extras["rewrite"],
+            "confidence": {
+                "level": extras["confidence"].level,
+                "score": extras["confidence"].score,
+                "reason": extras["confidence"].reason,
+                "message": extras["confidence"].user_message(),
+            },
             "verify": {
                 "total": verify_result.total,
                 "verified": verify_result.verified_count,
@@ -593,7 +684,8 @@ if page == "💬 对话":
                 "citations": [
                     {"law": c.law, "article": c.article,
                      "verified": c.verified, "note": c.note,
-                     "is_abbrev": c.is_abbrev}
+                     "is_abbrev": c.is_abbrev,
+                     "matched_text": c.matched_text}
                     for c in verify_result.citations
                 ],
             },
@@ -648,7 +740,7 @@ elif page == "🕸️ 引用图谱":
             法规不是孤立文本，而是相互引用的网络 —— 用结构化关系补充向量检索的盲区
         </p>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
     # 指标卡
     m1, m2, m3, m4 = st.columns(4)
@@ -687,7 +779,7 @@ elif page == "🕸️ 引用图谱":
         st.markdown("**📥 被引用最多** — 法律位阶高、基础性强")
         for n, d in gs["most_cited"][:8]:
             pct = d / gs["most_cited"][0][1] if gs["most_cited"] else 0
-            st.markdown(f"""<div style="display:flex;align-items:center;
+            st_html(f"""<div style="display:flex;align-items:center;
                 gap:10px;margin-bottom:6px;font-size:0.83rem;">
                 <div style="width:26px;text-align:right;color:#60a5fa;
                      font-weight:600;">{d}</div>
@@ -699,13 +791,13 @@ elif page == "🕸️ 引用图谱":
                     <div style="position:absolute;left:8px;top:2px;
                          font-size:0.78rem;">{n[:22]}</div>
                 </div>
-            </div>""", unsafe_allow_html=True)
+            </div>""")
 
     with c2:
         st.markdown("**📤 引用他人最多** — 综合性、依赖性强")
         for n, d in gs["most_citing"][:8]:
             pct = d / gs["most_citing"][0][1] if gs["most_citing"] else 0
-            st.markdown(f"""<div style="display:flex;align-items:center;
+            st_html(f"""<div style="display:flex;align-items:center;
                 gap:10px;margin-bottom:6px;font-size:0.83rem;">
                 <div style="width:26px;text-align:right;color:#34d399;
                      font-weight:600;">{d}</div>
@@ -717,7 +809,7 @@ elif page == "🕸️ 引用图谱":
                     <div style="position:absolute;left:8px;top:2px;
                          font-size:0.78rem;">{n[:22]}</div>
                 </div>
-            </div>""", unsafe_allow_html=True)
+            </div>""")
 
     st.caption("💡 图谱自动发现了法律位阶结构 —— "
                "被引用最多的正是《医疗机构管理条例》《药品管理法》《医师法》等基础法规")
@@ -749,11 +841,11 @@ elif page == "🕸️ 引用图谱":
                 arts = f" · {', '.join(e['articles'][:2])}" if e["articles"] else ""
                 type_cn = {"based_on": "依据", "refer_to": "参照",
                            "mention": "提及"}.get(e["type"], e["type"])
-                st.markdown(f"""<div class="retrieval-card" style="padding:8px 12px;">
+                st_html(f"""<div class="retrieval-card" style="padding:8px 12px;">
                     <span class="source-tag">{type_cn} ×{e['weight']}</span>
                     <div style="margin-top:4px;font-size:0.85rem;">
                         《{e['target']}》{arts}</div>
-                </div>""", unsafe_allow_html=True)
+                </div>""")
             if not out_e:
                 st.caption("无对外引用")
 
@@ -763,13 +855,13 @@ elif page == "🕸️ 引用图谱":
                 arts = f" · {', '.join(e['articles'][:2])}" if e["articles"] else ""
                 type_cn = {"based_on": "依据", "refer_to": "参照",
                            "mention": "提及"}.get(e["type"], e["type"])
-                st.markdown(f"""<div class="retrieval-card" style="padding:8px 12px;
+                st_html(f"""<div class="retrieval-card" style="padding:8px 12px;
                     border-left-color:#34d399;">
                     <span class="source-tag" style="background:#064e3b;color:#6ee7b7;">
                         {type_cn} ×{e['weight']}</span>
                     <div style="margin-top:4px;font-size:0.85rem;">
                         《{e['source']}》{arts}</div>
-                </div>""", unsafe_allow_html=True)
+                </div>""")
             if not in_e:
                 st.caption("无被引用")
 
@@ -953,10 +1045,10 @@ elif page == "📚 知识库":
                 fpath = os.path.join(data_dir, name + ".txt")
                 if os.path.exists(fpath):
                     size_kb = os.path.getsize(fpath) / 1024
-                    st.markdown(f"""<div class="file-card">
+                    st_html(f"""<div class="file-card">
                         <div class="name">📄 {name}</div>
                         <div class="meta">{size_kb:.1f} KB</div>
-                    </div>""", unsafe_allow_html=True)
+                    </div>""")
 
     # 语义搜索
     st.divider()
@@ -969,11 +1061,11 @@ elif page == "📚 知识库":
         for i, doc in enumerate(results):
             src = os.path.basename(doc.metadata.get("source", "")).replace(".txt", "")
             label = doc.metadata.get("article_label", "")
-            st.markdown(f"""<div class="retrieval-card">
+            st_html(f"""<div class="retrieval-card">
                 <span class="source-tag">#{i+1} {src}</span>
                 {' · <span class="source-tag">' + label + '</span>' if label else ''}
                 <div style="margin-top:6px; color:#475569; line-height:1.6;">{doc.page_content[:400]}</div>
-            </div>""", unsafe_allow_html=True)
+            </div>""")
 
 
 # ── 页面：系统 ────────────────────────────────────────
