@@ -33,6 +33,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from config import DATA_DIR, CHROMA_DIR, EMBED_MODEL, CHUNK_SIZE, CHUNK_OVERLAP
+from smart_splitter import smart_split_documents
 
 
 # =====================================================
@@ -220,11 +221,10 @@ def build():
     print(f"  ⏱️  耗时: {time.time() - start:.1f}s")
 
     # 第 2 步
-    print(f"\n✂️  第 2 步：切分文档 (chunk_size={CHUNK_SIZE}, overlap={CHUNK_OVERLAP})")
+    print(f"\n✂️  第 2 步：智能切分文档（按条款/序号结构，非固定字数）")
     print("-" * 40)
     start = time.time()
-    chunks = split_documents(docs)
-    print(f"  📊 切分结果: {len(docs)} 个原始文档 → {len(chunks)} 个片段")
+    chunks = smart_split_documents(docs)
     print(f"  ⏱️  耗时: {time.time() - start:.1f}s")
 
     # 展示前 3 个 chunk 的样子，帮助理解切分效果
@@ -343,14 +343,9 @@ def update():
         new_docs.extend(loaded)
         print(f"  📄 已加载: {name} → {len(loaded)} 个文档")
 
-    # 切分新文件
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=CHUNK_SIZE,
-        chunk_overlap=CHUNK_OVERLAP,
-        separators=["\n\n", "\n", "。", "；", "，", " ", ""],
-    )
-    new_chunks = splitter.split_documents(new_docs)
-    print(f"\n  ✂️  切分: {len(new_docs)} 个文档 → {len(new_chunks)} 个新片段")
+    # 智能切分新文件
+    new_chunks = smart_split_documents(new_docs)
+    print(f"\n  ✂️  智能切分完成")
 
     # 加入向量库（不删除已有数据）
     print(f"  📦 正在向量化并加入已有向量库...")

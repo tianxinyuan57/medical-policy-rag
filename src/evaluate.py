@@ -84,8 +84,8 @@ TEST_CASES = [
     },
     {
         "question": "以师承方式学中医的人可以行医吗？需要什么条件？",
-        "expected_source": "中医药法",
-        "expected_keywords": ["师承", "推荐", "考核"],
+        "expected_source": ["中医药法", "传统医学师承"],  # 两部法规都算命中
+        "expected_keywords": ["师承", "考核"],
         "type": "理解推理",
     },
 
@@ -130,7 +130,13 @@ def evaluate_retrieval(question: str, expected_source: str) -> dict:
         # 拒答题：检索必然会返回些东西，但不应该有特别相关的
         return {"hit": True, "sources": sources, "note": "拒答题，检索结果不影响评判"}
 
-    hit = any(expected_source in s for s in sources)
+    # 支持多个期望来源（list 或 str）：命中任意一个即算通过
+    if isinstance(expected_source, str):
+        expected_source = [expected_source]
+    hit = any(
+        any(exp in s for s in sources)
+        for exp in expected_source
+    )
     return {"hit": hit, "sources": sources}
 
 

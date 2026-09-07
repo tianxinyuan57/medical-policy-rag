@@ -18,6 +18,11 @@ CHROMA_DIR = "chroma_db"
 EMBED_MODEL = "BAAI/bge-small-zh-v1.5"  # 本地中文 embedding，免费、离线可跑
 
 # --- RAG 参数 ---
-CHUNK_SIZE = 500       # 每个文本片段的字符数
-CHUNK_OVERLAP = 100    # 相邻片段的重叠字符数
+CHUNK_SIZE = 500       # fallback 切分的字符数（用于无结构文档）
+CHUNK_OVERLAP = 100    # fallback 切分的重叠字符数
 TOP_K = 5              # 检索返回的最相关片段数（由 3 调优至 5，见 tuning_experiment.py）
+
+# --- Smart Splitter 参数（见 smart_splitter.py）---
+# 主要切分策略：按条款（第X条）/ 序号（一、二、三）结构切分
+# MERGE_THRESHOLD = 150    # 太短的条款合并阈值
+# SPLIT_THRESHOLD = 800    # 太长的条款二次切分阈值
