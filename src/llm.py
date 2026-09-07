@@ -44,6 +44,51 @@ def ask_llm(system_prompt: str, user_prompt: str) -> str:
     return resp.choices[0].message.content
 
 
+def ask_llm_json(system_prompt: str, user_prompt: str,
+                 temperature: float = 0.0) -> dict:
+    """调用大模型并要求返回 JSON。
+
+    用于 LLM-as-judge 等需要机器解析结果的场景。
+    DeepSeek 支持 OpenAI 的 response_format JSON 模式。
+
+    Args:
+        system_prompt: 系统提示词（必须在其中说明输出 JSON 及其结构）
+        user_prompt:   用户输入
+        temperature:   评判场景用 0.0，保证可复现
+
+    Returns:
+        解析后的 dict；解析失败返回 {"_error": "...", "_raw": "..."}
+    """
+    import json as _json
+
+    try:
+        resp = client.chat.completions.create(
+            model=CHAT_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=temperature,
+            response_format={"type": "json_object"},
+        )
+        raw = resp.choices[0].message.content
+    except Exception as e:
+        return {"_error": f"API 调用失败: {e}"}
+
+    try:
+        return _json.loads(raw)
+    except Exception:
+        # 兜底：模型偶尔会在 JSON 外包一层 ```json ```
+        import re as _re
+        m = _re.search(r'\{.*\}', raw or "", _re.S)
+        if m:
+            try:
+                return _json.loads(m.group(0))
+            except Exception:
+                pass
+        return {"_error": "JSON 解析失败", "_raw": (raw or "")[:300]}
+
+
 # =====================================================
 # 阶段 1：提示词工程 —— 结构化输出 + 反幻觉
 # =====================================================

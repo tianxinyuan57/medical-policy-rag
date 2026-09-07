@@ -1,0 +1,30 @@
+[
+  {
+    "top_k": 3,
+    "graph_k": 0,
+    "context_precision": 0.267,
+    "context_recall": 0.929,
+    "faithfulness": 0.903
+  },
+  {
+    "top_k": 3,
+    "graph_k": 2,
+    "context_precision": 0.202,
+    "context_recall": 0.964,
+    "faithfulness": 0.85
+  },
+  {
+    "top_k": 5,
+    "graph_k": 2,
+    "context_precision": 0.175,
+    "context_recall": 0.964,
+    "faithfulness": 0.951
+  },
+  {
+    "top_k": 8,
+    "graph_k": 2,
+    "context_precision": 0.161,
+    "context_recall": 0.964,
+    "faithfulness": 0.89
+  }
+]

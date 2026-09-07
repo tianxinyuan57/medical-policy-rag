@@ -68,6 +68,87 @@ def _normalize_law(name: str) -> str:
 
 
 # =====================================================
+# 条款号归一化：阿拉伯数字 ⇄ 中文数字
+# =====================================================
+#
+# 【踩过的坑】模型引用时会混用两种写法：
+#     模型输出：「根据《医师法》第10条」
+#     法规原文：「第十条　具有高等学校相关医学专业专科以上学历……」
+# 纯字面匹配会把正确引用误判成幻觉 —— 实测导致某道题引用准确率 0/3。
+# 所以核验前必须把两种写法归一。
+
+_CN_DIGITS = "零一二三四五六七八九"
+
+
+def _int_to_cn(n: int) -> str:
+    """阿拉伯数字转中文数字（法条编号 1~999 足够）。
+
+    10 → 十      15 → 十五      27 → 二十七
+    100 → 一百   116 → 一百一十六
+    """
+    if n <= 0 or n > 999:
+        return ""
+    if n < 10:
+        return _CN_DIGITS[n]
+    if n < 20:                        # 十、十一 … 十九
+        return "十" + (_CN_DIGITS[n % 10] if n % 10 else "")
+    if n < 100:                       # 二十、二十一 …
+        t, o = divmod(n, 10)
+        return _CN_DIGITS[t] + "十" + (_CN_DIGITS[o] if o else "")
+    h, rem = divmod(n, 100)           # 100~999
+    s = _CN_DIGITS[h] + "百"
+    if rem == 0:
+        return s
+    if rem < 10:                      # 一百零五
+        return s + "零" + _CN_DIGITS[rem]
+    t, o = divmod(rem, 10)
+    s += ("一十" if t == 1 else _CN_DIGITS[t] + "十")
+    return s + (_CN_DIGITS[o] if o else "")
+
+
+def _cn_to_int(s: str) -> int:
+    """中文数字转阿拉伯数字。十五 → 15，一百一十六 → 116。"""
+    if not s:
+        return 0
+    if s.isdigit():
+        return int(s)
+    section, number = 0, 0
+    for ch in s:
+        if ch in _CN_DIGITS:
+            number = _CN_DIGITS.index(ch)
+        elif ch == "十":
+            section += (number or 1) * 10
+            number = 0
+        elif ch == "百":
+            section += (number or 1) * 100
+            number = 0
+    return section + number
+
+
+def article_variants(article: str) -> list[str]:
+    """给定「第X条」，返回中文数字与阿拉伯数字两种写法。
+
+    「第10条」  → ["第10条", "第十条"]
+    「第十五条」 → ["第十五条", "第15条"]
+    """
+    m = re.match(r'^第([一二三四五六七八九十百千零\d]+)条$', article)
+    if not m:
+        return [article]
+
+    core = m.group(1)
+    out = [article]
+    if core.isdigit():
+        cn = _int_to_cn(int(core))
+        if cn:
+            out.append(f"第{cn}条")
+    else:
+        num = _cn_to_int(core)
+        if num:
+            out.append(f"第{num}条")
+    return list(dict.fromkeys(out))
+
+
+# =====================================================
 # 数据结构
 # =====================================================
 
@@ -142,24 +223,27 @@ class VerifyResult:
 # 核心：从片段中判断某条款是否存在
 # =====================================================
 
-def _article_in_chunk(article: str, chunk_text: str) -> bool:
-    """判断「第X条」是否作为**本文档条款**出现在片段正文中。
+def _find_article_pos(article: str, chunk_text: str) -> int:
+    """在片段中找「第X条」作为**本文档条款**出现的位置，找不到返回 -1。
 
-    排除转引情况：「依照《药品管理法》第八十条」里的第八十条
-    属于《药品管理法》，不是本片段所属法规的条款。
-
-    判据：条款号前若紧跟「》」（允许中间有「的」「之」等虚词），
-    视为转引，不计入。
+    两点处理：
+    1. 中文/阿拉伯数字两种写法都试（模型可能写「第10条」而原文是「第十条」）
+    2. 排除转引：「依照《药品管理法》第八十条」里的第八十条属于
+       《药品管理法》，不是本片段所属法规的条款。
+       判据：条款号前若紧跟「》」（允许夹「的」「之」等虚词）→ 转引
     """
-    for m in re.finditer(re.escape(article), chunk_text):
-        # 往前看最多 4 个字符
-        before = chunk_text[max(0, m.start() - 4):m.start()]
-        # 去掉虚词后，若以「》」结尾 → 转引，跳过
-        stripped = re.sub(r'[的之\s]', '', before)
-        if stripped.endswith('》'):
-            continue
-        return True   # 找到一处非转引的出现
-    return False
+    for variant in article_variants(article):
+        for m in re.finditer(re.escape(variant), chunk_text):
+            before = chunk_text[max(0, m.start() - 4):m.start()]
+            if re.sub(r'[的之\s]', '', before).endswith('》'):
+                continue          # 转引，跳过
+            return m.start()
+    return -1
+
+
+def _article_in_chunk(article: str, chunk_text: str) -> bool:
+    """判断「第X条」是否作为本文档条款出现在片段正文中。"""
+    return _find_article_pos(article, chunk_text) >= 0
 
 
 def _extract_article_text(article: str, chunk_text: str,
@@ -174,26 +258,26 @@ def _extract_article_text(article: str, chunk_text: str,
         chunk_text: 片段全文
         max_len: 截断长度，避免超长条款撑爆界面
     """
-    # 定位目标条款（跳过转引）
-    start = -1
-    for m in re.finditer(re.escape(article), chunk_text):
-        before = chunk_text[max(0, m.start() - 4):m.start()]
-        if re.sub(r'[的之\s]', '', before).endswith('》'):
-            continue
-        start = m.start()
-        break
-
+    # 定位目标条款（自动兼容中文/阿拉伯数字，跳过转引）
+    start = _find_article_pos(article, chunk_text)
     if start < 0:
         return ""
 
+    # 命中的可能是变体写法，取实际长度
+    matched_len = len(article)
+    for v in article_variants(article):
+        if chunk_text.startswith(v, start):
+            matched_len = len(v)
+            break
+
     # 找下一个条款的起始位置作为结束点
-    rest = chunk_text[start + len(article):]
+    rest = chunk_text[start + matched_len:]
     nxt = re.search(r'第[一二三四五六七八九十百千零\d]+条', rest)
     if nxt:
         # 同样要跳过转引的条款号
         offset = 0
         while nxt:
-            abs_pos = start + len(article) + offset + nxt.start()
+            abs_pos = start + matched_len + offset + nxt.start()
             before = chunk_text[max(0, abs_pos - 4):abs_pos]
             if not re.sub(r'[的之\s]', '', before).endswith('》'):
                 end = abs_pos
